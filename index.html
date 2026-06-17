@@ -1205,7 +1205,7 @@
                 </div>
                 <h1>The Ultimate Case Opening Experience</h1>
                 <p class="sub">Open packs, battle friends, flip coins, and play blackjack — all in one place.</p>
-                <button class="landing-cta" onclick="openLogin()">
+                <button class="landing-cta" onclick="if(currentUser){showPage('browser')}else{openLogin()}">
                     Get Started
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
@@ -1295,7 +1295,7 @@
                 RoUnbox
             </div>
             <div class="nav-links">
-                <a class="nav-home-link" onclick="showPage('browser')" id="nav-home" title="Home">
+                <a class="nav-home-link" onclick="showPage('home')" id="nav-home" title="Home">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
                     Home
                 </a>
@@ -1358,7 +1358,7 @@
             <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
         </div>
         <div class="sidebar-links" id="sidebar-links">
-            <a onclick="showPage('browser');toggleSidebar();" id="sb-home"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>Home</a>
+            <a onclick="showPage('home');toggleSidebar();" id="sb-home"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>Home</a>
             <a onclick="showPage('browser');toggleSidebar();" id="sb-browser"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Packs</a>
             <a onclick="showPage('battles');toggleSidebar();" id="sb-battles"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/></svg>Battles</a>
             <a onclick="showPage('coinflip');toggleSidebar();" id="sb-coinflip"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="6.2" ry="6.2"/><path d="M12 8v8M9.5 9.5h3.2a1.5 1.5 0 0 1 0 3H9.8h3a1.5 1.5 0 0 1 0 3H9.5"/></svg>Coinflip</a>
@@ -2408,6 +2408,17 @@
         function showPage(pageId) {
             if (isSpinning) return;
             syncSidebar();
+            var lp=document.getElementById('landing-page');
+            if(pageId==='home'){
+                if(lp){lp.style.display='';lp.querySelector('.landing-nav').style.display='none';}
+                document.querySelector('main').style.display='none';
+                document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+                var nh=document.getElementById('nav-home');if(nh)nh.classList.add('active');
+                location.hash='home';
+                return;
+            }
+            if(lp){lp.style.display='none';}
+            document.querySelector('main').style.display='';
             if (pageId === 'admin') {
                 if (!currentUser || !isAdminUser) return;
                 renderAdminPanel();
@@ -4084,7 +4095,7 @@
                             if (socket) socket.emit('coinflip:watch', {coinflipId: roomId});
                             showPage('coinflip-room');
                         } else {
-                            var validPages = ['browser','battles','create-battle','coinflip','blackjack','inventory','opening','admin','settings'];
+                            var validPages = ['home','browser','battles','create-battle','coinflip','blackjack','inventory','opening','admin','settings','aviator'];
                             if (validPages.indexOf(page) !== -1) showPage(page);
                         }
                     }
