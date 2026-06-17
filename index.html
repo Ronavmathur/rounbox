@@ -41,7 +41,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
-        html { background-color: #06080e; overflow-x: hidden; }
+        html { background-color: #06080e; }
         body {
             color: var(--text-main);
             overflow-x: hidden;
@@ -776,8 +776,8 @@
 
         /* --- BLACKJACK --- */
         .bj-table{background:radial-gradient(ellipse at center,#1c5b3a 0%,#0f3d26 70%,#0a2c1b 100%);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:2rem 1.5rem;box-shadow:inset 0 0 60px rgba(0,0,0,0.45);min-height:380px;position:relative;overflow:hidden;}
-        .bj-bet-row{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:center;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;max-width:420px;margin:0 auto 1.5rem;}
-        .bj-deck-stack{position:absolute;top:20px;right:20px;width:74px;height:104px;z-index:10;}
+        .bj-bet-row{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:center;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;max-width:420px;margin:0 auto 1.5rem;position:relative;z-index:5;}
+        .bj-deck-stack{position:absolute;top:20px;right:20px;width:74px;height:104px;z-index:1;}
         .bj-deck-card{position:absolute;top:0;left:0;width:74px;height:104px;border-radius:8px;background:repeating-linear-gradient(45deg,#1e293b 0,#1e293b 6px,#334155 6px,#334155 12px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 4px 10px rgba(0,0,0,0.4);}
         .bj-deck-card::after{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,0.18);border-radius:5px;}
         .bj-deck-count{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.4);}
@@ -804,7 +804,7 @@
         .bj-result.win{color:#4ade80;}
         .bj-result.lose{color:#ef4444;}
         .bj-result.push{color:#fde68a;}
-        .bj-actions{display:flex;gap:0.75rem;justify-content:center;}
+        .bj-actions{display:flex;gap:0.75rem;justify-content:center;position:relative;z-index:5;}
         .bj-actions .btn-open,.bj-actions .btn-demo{min-width:110px;}
         @media(max-width:480px){
             .bj-card{width:60px;height:86px;}
@@ -1051,7 +1051,7 @@
         <div id="page-blackjack" class="page">
             <h2 class="section-title">Blackjack</h2>
             <div class="bj-table" id="bj-table">
-                <div class="bj-deck-stack" id="bj-deck-stack" style="display:none;">
+                <div class="bj-deck-stack" id="bj-deck-stack">
                     <div class="bj-deck-card" style="top:4px;left:2px;"></div>
                     <div class="bj-deck-card" style="top:2px;left:1px;"></div>
                     <div class="bj-deck-card" id="bj-deck-top"></div>
@@ -2990,7 +2990,6 @@
 
             bjState={active:true,bet:bet,deck:bjNewDeck(),player:[],dealer:[],over:false,animating:true};
             document.getElementById('bj-area').style.display='flex';
-            document.getElementById('bj-deck-stack').style.display='';
             document.getElementById('bj-player-cards').innerHTML='';
             document.getElementById('bj-dealer-cards').innerHTML='';
             document.getElementById('bj-player-total').innerText='';
@@ -3107,7 +3106,6 @@
         function renderBlackjackPage(){
             if(!bjState.active){
                 var area=document.getElementById('bj-area');if(area)area.style.display='none';
-                var ds=document.getElementById('bj-deck-stack');if(ds)ds.style.display='none';
                 bjSetActionsVisible(false);bjSetResult('','');
                 var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal';db.disabled=false;}
             }
