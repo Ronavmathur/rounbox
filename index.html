@@ -2212,10 +2212,6 @@
                             </div>
                         </div>`;}).join('')}
                 </div>
-                <div class="battle-history" id="battle-history" style="grid-template-columns:repeat(${Math.min(np,4)},1fr);">
-                    ${Array.from({length:np},(_,i)=>{const p=b.players[i];const ib=p&&p.startsWith('Bot_');
-                        return`<div class="history-col"><div class="history-col-head">${getAvatarHTML(p||'?')}<span>${p?(p+(ib?' (Bot)':'')):'Empty'}</span></div><div class="history-items"></div></div>`;}).join('')}
-                </div>
                 <div style="text-align:center;margin-top:1rem;">
                     ${isCr?`<button class="btn-demo" style="margin-right:0.5rem;" onclick="fillAllBots('${b.id}')">Fill Bots</button>`:''}
                     ${isCr&&allFilled?`<button class="btn-open" onclick="manualStartBattle('${b.id}')">Start Battle</button>`:''}
