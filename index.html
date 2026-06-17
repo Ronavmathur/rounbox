@@ -99,6 +99,20 @@
         .wallet-btn.bal-down { background: #dc2626; }
         .profile-btn { width: 34px; height: 34px; border-radius: 50%; background: #2a2d33; display:flex; align-items:center; justify-content:center; }
 
+        /* --- TOAST NOTIFICATIONS --- */
+        .toast-container{position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column-reverse;gap:0.5rem;pointer-events:none;max-width:420px;width:calc(100% - 2rem);}
+        .toast{pointer-events:auto;display:flex;align-items:center;gap:0.7rem;padding:0.75rem 1.1rem;border-radius:10px;font-size:0.88rem;font-weight:700;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:toastIn 0.35s ease;font-family:inherit;}
+        .toast.removing{animation:toastOut 0.35s ease forwards;}
+        .toast-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:900;flex-shrink:0;}
+        .toast.success{background:rgba(22,101,52,0.95);border:1px solid rgba(74,222,128,0.3);}
+        .toast.success .toast-icon{background:#4ade80;color:#052e16;}
+        .toast.error{background:rgba(127,29,29,0.95);border:1px solid rgba(239,68,68,0.3);}
+        .toast.error .toast-icon{background:#ef4444;color:#fff;}
+        .toast.info{background:rgba(30,58,138,0.95);border:1px solid rgba(59,130,246,0.3);}
+        .toast.info .toast-icon{background:#3b82f6;color:#fff;}
+        @keyframes toastIn{from{opacity:0;transform:translateY(20px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+        @keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1);}to{opacity:0;transform:translateY(10px) scale(0.95);}}
+
         /* --- HAMBURGER + SIDEBAR (mobile only) --- */
         .hamburger{display:none;background:none;border:none;cursor:pointer;padding:0.4rem;border-radius:6px;transition:.2s;}
         .hamburger:hover{background:rgba(255,255,255,0.08);}
@@ -1134,6 +1148,22 @@
             });
         }
 
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(msg,type,duration){
+            type=type||'info';duration=duration||3000;
+            var container=document.getElementById('toast-container');
+            if(!container)return;
+            var icons={success:'✓',error:'✕',info:'i'};
+            var toast=document.createElement('div');
+            toast.className='toast '+type;
+            toast.innerHTML='<div class="toast-icon">'+icons[type]+'</div><span>'+msg+'</span>';
+            container.appendChild(toast);
+            setTimeout(function(){
+                toast.classList.add('removing');
+                setTimeout(function(){toast.remove();},350);
+            },duration);
+        }
+
         // --- STARFIELD CANVAS ENGINE (calm) ---
         function initStars() {
             const canvas = document.getElementById('starfield');
@@ -1427,7 +1457,7 @@
         function handleAvatarUpload(e){
             const file=e.target.files&&e.target.files[0];e.target.value='';
             if(!file||!currentUser)return;
-            if(!file.type.startsWith('image/')){alert('Please select an image file');return;}
+            if(!file.type.startsWith('image/')){showToast('Please select an image file','error');return;}
             const reader=new FileReader();
             reader.onload=function(ev){
                 const img=new Image();
@@ -1442,10 +1472,10 @@
                     const dataUrl=canvas.toDataURL('image/png');
                     apiCall('/api/avatar',{avatar:dataUrl}).then(function(res){
                         if(res&&res.ok){myAvatar=dataUrl;refreshNavAvatar();}
-                        else alert((res&&res.msg)||'Could not save avatar');
+                        else showToast((res&&res.msg)||'Could not save avatar','error');
                     });
                 };
-                img.onerror=function(){alert('Could not load image');};
+                img.onerror=function(){showToast('Could not load image','error');};
                 img.src=ev.target.result;
             };
             reader.readAsDataURL(file);
@@ -1981,7 +2011,7 @@
         async function roll(isDemo) {
             if (isSpinning || !activeCase) return;
             const totalPackCost = activeCase.price * openQty;
-            if (!isDemo && balance < totalPackCost) return alert("Insufficient Balance!");
+            if (!isDemo && balance < totalPackCost) return showToast('Not enough balance','error');
 
             isSpinning = true;
             setButtonsState(true);
@@ -1993,7 +2023,7 @@
                 if (!res || !res.ok) {
                     isSpinning = false;
                     setButtonsState(false);
-                    return alert((res && res.msg) || 'Insufficient Balance!');
+                    return showToast((res&&res.msg)||'Not enough balance','error');
                 }
                 balance = res.balance;
                 updateUI();
@@ -2125,19 +2155,19 @@
         // --- Create / Join / Leave ---
         async function createBattleAction(){
             if(!currentUser||!createState.cases.length)return;
-            if(!socket||!socket.connected){alert('Not connected to server. Please refresh the page.');return;}
+            if(!socket||!socket.connected){showToast('Not connected to server. Please refresh.','error');return;}
             const total=createState.cases.reduce((s,cId)=>{const c=CASES.find(x=>x.id===cId);return s+(c?c.price:0);},0);
-            if(balance<total){alert('Insufficient balance!');return;}
+            if(balance<total){showToast('Not enough balance','error');return;}
             var btn=document.getElementById('create-battle-btn');if(btn)btn.disabled=true;
             // Deduct entry cost server-side first.
             const pay=await apiCall('/api/balance',{amount:-total});
-            if(!pay||!pay.ok){if(btn)btn.disabled=false;return alert((pay&&pay.msg)||'Insufficient balance!');}
+            if(!pay||!pay.ok){if(btn)btn.disabled=false;return showToast((pay&&pay.msg)||'Not enough balance','error');}
             balance=pay.balance;updateUI();
             socket.emit('battle:create',{username:currentUser,format:createState.format,scoring:createState.scoring,cases:[...createState.cases],quickMode:createState.quick},async function(res){
                 if(!res.ok){
                     // refund the deducted cost on failure
                     const r=await apiCall('/api/balance',{amount:total});if(r&&r.ok)balance=r.balance;updateUI();
-                    alert(res.msg);if(btn)btn.disabled=false;return;
+                    showToast(res.msg,'error');if(btn)btn.disabled=false;return;
                 }
                 activeBattleId=res.battleId;roomStateCache=res.battle;
                 socket.emit('battle:watch',{battleId:res.battleId});
@@ -2148,15 +2178,15 @@
             if(!currentUser||!socket)return;
             const b=lobbyCache.find(x=>x.id===bid);
             const cost=b?b.totalCost:0;
-            if(b&&balance<cost){alert('Insufficient balance!');return;}
+            if(b&&balance<cost){showToast('Not enough balance','error');return;}
             // Deduct entry cost server-side first.
             const pay=await apiCall('/api/balance',{amount:-cost});
-            if(!pay||!pay.ok)return alert((pay&&pay.msg)||'Insufficient balance!');
+            if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
             balance=pay.balance;updateUI();
             socket.emit('battle:join',{battleId:bid,username:currentUser},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:cost});if(r&&r.ok)balance=r.balance;updateUI();
-                    alert(res.msg);return;
+                    showToast(res.msg,'error');return;
                 }
                 activeBattleId=bid;roomStateCache=res.battle;showPage('battle-room');
             });
@@ -2172,9 +2202,9 @@
             if(roomStateCache&&roomStateCache.status==='waiting'&&roomStateCache.players.includes(currentUser)){leaveBattleAction(activeBattleId);}
             else{cancelBattleAnim();activeBattleId=null;roomStateCache=null;showPage('battles');}
         }
-        function addBotToSlot(bid){if(socket)socket.emit('battle:addBot',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
-        function fillAllBots(bid){if(socket)socket.emit('battle:fillBots',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
-        function manualStartBattle(bid){if(socket)socket.emit('battle:start',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
+        function addBotToSlot(bid){if(socket)socket.emit('battle:addBot',{battleId:bid,username:currentUser},function(r){if(!r.ok)showToast(r.msg,'error');});}
+        function fillAllBots(bid){if(socket)socket.emit('battle:fillBots',{battleId:bid,username:currentUser},function(r){if(!r.ok)showToast(r.msg,'error');});}
+        function manualStartBattle(bid){if(socket)socket.emit('battle:start',{battleId:bid,username:currentUser},function(r){if(!r.ok)showToast(r.msg,'error');});}
         function watchBattle(bid){
             activeBattleId=bid;
             var cached=lobbyCache.find(function(b){return b.id===bid;});
@@ -2592,18 +2622,18 @@
             if(!socket||!currentUser)return;
             var inp=document.getElementById('cf-custom-amount');
             if(inp)cfState.amount=parseFloat(inp.value)||0;
-            if(cfState.amount<=0){alert('Enter a valid bet amount');return;}
+            if(cfState.amount<=0){showToast('Enter a valid bet amount','error');return;}
             cfState.amount=Math.round(cfState.amount*100)/100;
-            if(balance<cfState.amount){alert('Insufficient balance!');return;}
+            if(balance<cfState.amount){showToast('Not enough balance','error');return;}
             const amt=cfState.amount;
             // Deduct bet server-side first.
             const pay=await apiCall('/api/balance',{amount:-amt});
-            if(!pay||!pay.ok)return alert((pay&&pay.msg)||'Insufficient balance!');
+            if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
             balance=pay.balance;updateUI();
             socket.emit('coinflip:create',{username:currentUser,amount:amt,side:cfState.side},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:amt});if(r&&r.ok)balance=r.balance;updateUI();
-                    alert(res.msg);return;
+                    showToast(res.msg,'error');return;
                 }
                 activeCoinflipId=res.coinflipId;
                 socket.emit('coinflip:watch',{coinflipId:res.coinflipId});
@@ -2613,16 +2643,16 @@
         async function joinCoinflip(cfId){
             if(!socket||!currentUser)return;
             const cf=cfLobbyCache.find(c=>c.id===cfId);if(!cf)return;
-            if(balance<cf.amount){alert('Insufficient balance!');return;}
+            if(balance<cf.amount){showToast('Not enough balance','error');return;}
             const amt=cf.amount;
             // Deduct bet server-side first.
             const pay=await apiCall('/api/balance',{amount:-amt});
-            if(!pay||!pay.ok)return alert((pay&&pay.msg)||'Insufficient balance!');
+            if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
             balance=pay.balance;updateUI();
             socket.emit('coinflip:join',{coinflipId:cfId,username:currentUser},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:amt});if(r&&r.ok)balance=r.balance;updateUI();
-                    alert(res.msg);return;
+                    showToast(res.msg,'error');return;
                 }
                 activeCoinflipId=cfId;
                 showPage('coinflip-room');
@@ -2641,7 +2671,7 @@
         }
         function callCoinflipBot(cfId){
             if(!socket)return;
-            socket.emit('coinflip:callBot',{coinflipId:cfId,username:currentUser},function(res){if(!res.ok)alert(res.msg);});
+            socket.emit('coinflip:callBot',{coinflipId:cfId,username:currentUser},function(res){if(!res.ok)showToast(res.msg,'error');});
         }
 
         function renderCoinflipActive(cf){
@@ -2970,11 +3000,11 @@
             var inp=document.getElementById('bj-bet-amount');
             var bet=parseFloat(inp?inp.value:'0')||0;
             bet=Math.round(bet*100)/100;
-            if(bet<=0){alert('Enter a valid bet amount');return;}
-            if(balance<bet){alert('Insufficient balance!');return;}
+            if(bet<=0){showToast('Enter a valid bet amount','error');return;}
+            if(balance<bet){showToast('Not enough balance','error');return;}
             // Deduct bet server-side first.
             var pay=await apiCall('/api/balance',{amount:-bet});
-            if(!pay||!pay.ok)return alert((pay&&pay.msg)||'Insufficient balance!');
+            if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
             balance=pay.balance;updateUI();
 
             bjState={active:true,bet:bet,deck:bjNewDeck(),player:[],dealer:[],over:false,animating:true};
@@ -3089,6 +3119,9 @@
             if(payout>0){apiCall('/api/balance',{amount:payout}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});}
             bjSetResult(msg,cls);
             playGameEnd();
+            if(cls==='win')showToast(msg,'success');
+            else if(cls==='lose')showToast(msg,'error');
+            else showToast(msg,'info');
             var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal Again';db.disabled=false;}
         }
 
@@ -3172,9 +3205,9 @@
             const input = prompt(`How much to give ${username}?`);
             if (input === null) return;
             const amt = parseFloat(input);
-            if (isNaN(amt) || amt <= 0 || amt > 1000000) { alert('Enter a valid amount (1 - 1,000,000)'); return; }
+            if (isNaN(amt) || amt <= 0 || amt > 1000000) { showToast('Enter a valid amount (1 - 1,000,000)','error'); return; }
             const res = await apiCall('/api/admin/give', { username, amount: amt });
-            if (!res || !res.ok) { alert((res && res.msg) || 'Failed'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Failed','error'); return; }
             if (username === currentUser && typeof res.balance === 'number') { balance = res.balance; updateUI(); }
             renderAdminPanel();
         }
@@ -3184,9 +3217,9 @@
             const input = prompt(`Take funds from ${username}`);
             if (input === null) return;
             const amt = parseFloat(input);
-            if (isNaN(amt) || amt <= 0) { alert('Enter a valid amount'); return; }
+            if (isNaN(amt) || amt <= 0) { showToast('Enter a valid amount','error'); return; }
             const res = await apiCall('/api/admin/take', { username, amount: amt });
-            if (!res || !res.ok) { alert((res && res.msg) || 'Failed'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Failed','error'); return; }
             if (username === currentUser && typeof res.balance === 'number') { balance = res.balance; updateUI(); }
             renderAdminPanel();
         }
@@ -3195,31 +3228,33 @@
             if (!isCurrentUserAdmin()) return;
             if (!confirm(`Ban user "${username}"? They won't be able to log in.`)) return;
             const res = await apiCall('/api/admin/ban', { username });
-            if (!res || !res.ok) { alert((res && res.msg) || 'Failed'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Failed','error'); return; }
             renderAdminPanel();
         }
 
         async function adminUnban(username) {
             if (!isCurrentUserAdmin()) return;
             const res = await apiCall('/api/admin/unban', { username });
-            if (!res || !res.ok) { alert((res && res.msg) || 'Failed'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Failed','error'); return; }
             renderAdminPanel();
         }
 
         async function sellItem(idx) {
             if (idx < 0 || idx >= inventory.length) return;
             const res = await apiCall('/api/inventory/sell', { index: idx });
-            if (!res || !res.ok) { alert((res && res.msg) || 'Could not sell item'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Could not sell item','error'); return; }
             if (Array.isArray(res.inventory)) inventory = res.inventory;
             if (typeof res.balance === 'number') balance = res.balance;
             updateUI();
+            showToast('Item sold!','success');
         }
         async function sellAll() {
             const res = await apiCall('/api/inventory/sellall', {});
-            if (!res || !res.ok) { alert((res && res.msg) || 'Could not sell items'); return; }
+            if (!res || !res.ok) { showToast((res&&res.msg)||'Could not sell items','error'); return; }
             if (Array.isArray(res.inventory)) inventory = res.inventory;
             if (typeof res.balance === 'number') balance = res.balance;
             updateUI();
+            showToast('All items sold!','success');
         }
 
         (async function init() {
@@ -3267,5 +3302,6 @@
             else { showPage(page); }
         });
     </script>
+    <div class="toast-container" id="toast-container"></div>
 </body>
 </html>
