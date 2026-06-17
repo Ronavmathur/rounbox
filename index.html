@@ -1677,6 +1677,63 @@
             });
         }
 
+        function playGoldSpin(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            // Shimmering ascending arpeggio
+            var notes=[440,554.37,659.25,880,1108.73,1318.51];
+            notes.forEach(function(freq,i){
+                var osc=audioCtx.createOscillator();
+                var gain=audioCtx.createGain();
+                osc.connect(gain);gain.connect(audioCtx.destination);
+                osc.type='sine';
+                var start=t+i*0.08;
+                osc.frequency.setValueAtTime(freq,start);
+                osc.frequency.exponentialRampToValueAtTime(freq*1.02,start+0.3);
+                gain.gain.setValueAtTime(0,start);
+                gain.gain.linearRampToValueAtTime(0.2,start+0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001,start+0.6);
+                osc.start(start);osc.stop(start+0.6);
+            });
+            // Add a metallic shimmer
+            var noise=audioCtx.createOscillator();
+            var ng=audioCtx.createGain();
+            noise.connect(ng);ng.connect(audioCtx.destination);
+            noise.type='triangle';
+            noise.frequency.setValueAtTime(2637,t);
+            noise.frequency.exponentialRampToValueAtTime(4186,t+0.5);
+            ng.gain.setValueAtTime(0,t+0.1);
+            ng.gain.linearRampToValueAtTime(0.06,t+0.2);
+            ng.gain.exponentialRampToValueAtTime(0.001,t+0.8);
+            noise.start(t+0.1);noise.stop(t+0.8);
+        }
+
+        function fireGoldRain(count){
+            var canvas=document.getElementById('confetti-canvas');
+            if(!canvas)return;
+            if(canvas.width!==window.innerWidth||canvas.height!==window.innerHeight){
+                canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+            }
+            var n=count||60;
+            var goldColors=['#ffd700','#ffec4d','#daa520','#f5c842','#fff4b0','#c8a200'];
+            for(var i=0;i<n;i++){
+                _confettiParticles.push({
+                    x:Math.random()*canvas.width,
+                    y:-20-Math.random()*200,
+                    vx:(Math.random()-0.5)*1.5,
+                    vy:1+Math.random()*2,
+                    size:4+Math.random()*8,
+                    color:goldColors[Math.floor(Math.random()*goldColors.length)],
+                    rot:Math.random()*Math.PI*2,
+                    vrot:(Math.random()-0.5)*0.08,
+                    shape:Math.random()<0.6?'rect':'circle',
+                    life:0,
+                    maxLife:120+Math.random()*80
+                });
+            }
+            if(!_confettiRunning){_confettiRunning=true;requestAnimationFrame(_confettiLoop);}
+        }
+
         // --- TOAST NOTIFICATIONS ---
         function showToast(msg,type,duration){
             type=type||'info';duration=duration||3000;
@@ -2716,8 +2773,8 @@
                 const goldTokensHit = wonItems.filter(item => item.isToken).length;
 
                 if (goldTokensHit > 0) {
-                    // GOLD SPIN! celebrate the premium unlock
-                    fireConfetti(110);
+                    playGoldSpin();
+                    fireGoldRain(80);
                     // no "gold spin" text — just keep normal wins, then run the gold reel
                     if (!isDemo) {
                         addItemsToInventory(wonItems);
