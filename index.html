@@ -1142,6 +1142,7 @@
                 <div class="bj-actions" id="bj-actions" style="display:none;">
                     <button class="btn-open" id="bj-hit-btn" onclick="bjHit()">Hit</button>
                     <button class="btn-demo" id="bj-stand-btn" onclick="bjStand()">Stand</button>
+                    <button class="btn-demo" id="bj-double-btn" onclick="bjDouble()" style="background:#f59e0b;color:#000;">Double</button>
                 </div>
             </div>
         </div>
@@ -3064,7 +3065,11 @@
             },300);
         }
 
-        function bjSetActionsVisible(v){var a=document.getElementById('bj-actions');if(a)a.style.display=v?'flex':'none';}
+        function bjSetActionsVisible(v){
+            var a=document.getElementById('bj-actions');if(a)a.style.display=v?'flex':'none';
+            var db=document.getElementById('bj-double-btn');
+            if(db)db.style.display=(v&&bjState.player&&bjState.player.length===2)?'':'none';
+        }
         function bjSetResult(text,cls){var r=document.getElementById('bj-result');if(!r)return;r.innerText=text||'';r.className='bj-result'+(cls?' '+cls:'');}
 
         async function bjDeal(){
@@ -3081,6 +3086,7 @@
             balance=pay.balance;updateUI();showToast('Spent -$'+fmt(bet),'error');
 
             bjState={active:true,bet:bet,deck:bjNewDeck(),player:[],dealer:[],over:false,animating:true};
+            bjLockBets(true);
             document.getElementById('bj-area').style.display='flex';
             document.getElementById('bj-player-cards').innerHTML='';
             document.getElementById('bj-dealer-cards').innerHTML='';
@@ -3178,9 +3184,41 @@
             });
         }
 
+        function bjDouble(){
+            if(!bjState.active||bjState.over||bjState.animating)return;
+            if(bjState.player.length!==2)return;
+            var extraBet=bjState.bet;
+            if(balance<extraBet){showToast('Not enough balance to double','error');return;}
+            bjState.animating=true;
+            bjSetActionsVisible(false);
+            apiCall('/api/balance',{amount:-extraBet}).then(function(r){
+                if(!r||!r.ok){bjState.animating=false;bjSetActionsVisible(true);showToast('Not enough balance to double','error');return;}
+                balance=r.balance;updateUI();
+                showToast('Spent -$'+fmt(extraBet),'error');
+                bjState.bet+=extraBet;
+                var c=bjState.deck.pop();bjState.player.push(c);
+                var pc=document.getElementById('bj-player-cards');
+                bjFlyCard(c,pc,true,function(){
+                    bjUpdateTotal('player');
+                    bjState.animating=false;
+                    if(bjHandTotal(bjState.player)>21){
+                        bjRevealHidden(bjState.dealer[1],function(){bjUpdateTotal('dealer');bjFinish('bust');});
+                    }else{
+                        bjStand();
+                    }
+                });
+            });
+        }
+
+        function bjLockBets(locked){
+            var inp=document.getElementById('bj-bet-amount');if(inp)inp.disabled=locked;
+            document.querySelectorAll('.bet-shortcut').forEach(function(b){b.disabled=locked;});
+        }
+
         function bjFinish(outcome){
             bjState.over=true;bjState.active=false;bjState.animating=false;
             bjSetActionsVisible(false);
+            bjLockBets(false);
             var bet=bjState.bet;
             var msg='',cls='',payout=0;
             if(outcome==='blackjack'){var pay=bet*2.5;payout=pay;msg='BLACKJACK! +$'+fmt(pay-bet);cls='win';}
@@ -3193,8 +3231,7 @@
             bjSetResult(msg,cls);
             playGameEnd();
             if(cls==='win')showToast(msg,'success');
-            else if(cls==='lose')showToast(msg,'error');
-            else showToast(msg,'info');
+            else if(cls==='push')showToast(msg,'info');
             var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal Again';db.disabled=false;}
         }
 
