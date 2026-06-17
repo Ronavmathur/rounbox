@@ -92,9 +92,11 @@
             background: #3b82f6;
             color: white; padding: 0.6rem 1.2rem;
             border-radius: 6px; font-size: 1rem; font-weight: 600;
-            cursor: pointer; border: none; transition: 0.2s;
+            cursor: pointer; border: none; transition: background 0.2s;
         }
         .wallet-btn:hover { background: #2563eb; }
+        .wallet-btn.bal-up { background: #16a34a; }
+        .wallet-btn.bal-down { background: #dc2626; }
         .profile-btn { width: 34px; height: 34px; border-radius: 50%; background: #2a2d33; display:flex; align-items:center; justify-content:center; }
 
         /* --- HAMBURGER + SIDEBAR (mobile only) --- */
@@ -1114,6 +1116,24 @@
             osc.start(); osc.stop(audioCtx.currentTime + 1);
         }
 
+        function playGameEnd(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            var notes=[523.25,659.25,783.99,1046.5];
+            notes.forEach(function(freq,i){
+                var osc=audioCtx.createOscillator();
+                var gain=audioCtx.createGain();
+                osc.connect(gain);gain.connect(audioCtx.destination);
+                osc.type='sine';
+                osc.frequency.setValueAtTime(freq,t+i*0.12);
+                gain.gain.setValueAtTime(0,t+i*0.12);
+                gain.gain.linearRampToValueAtTime(0.18,t+i*0.12+0.04);
+                gain.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.5);
+                osc.start(t+i*0.12);
+                osc.stop(t+i*0.12+0.5);
+            });
+        }
+
         // --- STARFIELD CANVAS ENGINE (calm) ---
         function initStars() {
             const canvas = document.getElementById('starfield');
@@ -1598,11 +1618,41 @@
             img.src = IMAGES[key];
         }
 
+        var _balDisplay=0;
+        var _balAnimId=null;
         function updateUI() {
-            document.getElementById('bal-display').innerText = fmt(balance);
+            var target=balance;
+            var el=document.getElementById('bal-display');
+            var btn=document.querySelector('.wallet-btn');
             document.getElementById('inv-count').innerText = inventory.length;
             var sbc=document.getElementById('sb-inv-count');if(sbc)sbc.innerText=inventory.length;
             renderInventory();
+            if(!el)return;
+
+            if(_balAnimId){cancelAnimationFrame(_balAnimId);_balAnimId=null;}
+            var start=_balDisplay;
+            var diff=target-start;
+            if(Math.abs(diff)<0.005){_balDisplay=target;el.innerText=fmt(target);return;}
+
+            var isUp=diff>0;
+            if(btn){btn.classList.remove('bal-up','bal-down');btn.classList.add(isUp?'bal-up':'bal-down');}
+
+            var duration=isUp?1200:500;
+            var startTime=performance.now();
+            function tick(now){
+                var elapsed=now-startTime;
+                var t=Math.min(elapsed/duration,1);
+                var ease=1-Math.pow(1-t,3);
+                var cur=start+diff*ease;
+                _balDisplay=cur;
+                el.innerText=fmt(cur);
+                if(t<1){_balAnimId=requestAnimationFrame(tick);}
+                else{
+                    _balDisplay=target;el.innerText=fmt(target);_balAnimId=null;
+                    if(btn)setTimeout(function(){btn.classList.remove('bal-up','bal-down');},400);
+                }
+            }
+            _balAnimId=requestAnimationFrame(tick);
         }
 
         function toggleSidebar(){
@@ -2440,6 +2490,7 @@
 
         function showBattleFinal(battle){
             if(!battle.results)return;
+            playGameEnd();
             const isTeam=!!battle.isTeam;const ts=battle.teamSize||0;
             const wIdx=battle.players.indexOf(battle.winner);
             const wTeam=isTeam&&ts>0?(wIdx<ts?0:1):-1;
@@ -2774,6 +2825,7 @@
                                 setTimeout(function(){
                                     cfAnimRunning=false;
                                     activeCfState.status='finished';
+                                    playGameEnd();
                                     if(cf.winner===currentUser){
                                         apiCall('/api/balance',{amount:cf.amount*2}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});
                                     }
@@ -3048,6 +3100,7 @@
             // Credit any winnings/returned bet server-side.
             if(payout>0){apiCall('/api/balance',{amount:payout}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});}
             bjSetResult(msg,cls);
+            playGameEnd();
             var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal Again';db.disabled=false;}
         }
 
