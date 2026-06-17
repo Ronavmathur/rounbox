@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoUnbox - Premium Case Opening</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #080b12;
+            --bg-nav: rgba(12,15,22,0.88);
+            --bg-card: rgba(18,23,33,0.65);
+            --bg-card-hover: rgba(26,32,46,0.8);
+            --text-main: #f0f2f5;
+            --text-muted: #7c8499;
+            --border-light: rgba(255,255,255,0.06);
+            --btn-open-from: #4ade80;
+            --btn-open-to: #22c55e;
+            --btn-demo-bg: #2a303c;
+            --common: #9ca3af;
+            --rare: #3b82f6;
+            --epic: #a855f7;
+            --legendary: #ef4444;
+            --gold-spin: #facc15;
+            --reel-item-width: 220px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+        body{color:var(--text-main);overflow-x:hidden;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased;background:#080b12;}
+
+        #starfield{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;background:#06080e;}
+
+        /* --- NAV --- */
+        nav{display:flex;justify-content:space-between;align-items:center;padding:0.85rem 2.5rem;background:var(--bg-nav);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border-light);position:sticky;top:0;z-index:1000;}
+        .nav-left{display:flex;align-items:center;gap:2.5rem;}
+        .logo{font-size:1.3rem;font-weight:800;color:var(--text-main);display:flex;align-items:center;gap:0.6rem;cursor:pointer;letter-spacing:-0.5px;}
+        .nav-links{display:flex;gap:1.8rem;font-size:0.95rem;font-weight:600;color:var(--text-muted);}
+        .nav-links span{cursor:pointer;transition:color .2s;position:relative;}
+        .nav-links span:hover,.nav-links span.active{color:var(--text-main);}
+        .nav-links span.active::after{content:'';position:absolute;bottom:-4px;left:0;width:100%;height:2px;background:var(--btn-open-from);border-radius:1px;}
+        .nav-right{display:flex;align-items:center;gap:0.75rem;}
+        .cart-btn{background:rgba(255,255,255,0.06);color:white;padding:0.5rem 1rem;border-radius:8px;font-size:0.9rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;cursor:pointer;border:1px solid rgba(255,255,255,0.05);transition:.2s;}
+        .cart-btn:hover{background:rgba(255,255,255,0.1);}
+        .cart-badge{background:white;color:black;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:800;}
+        .wallet-btn{background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;padding:0.55rem 1.1rem;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;border:none;transition:.2s;box-shadow:0 2px 12px rgba(59,130,246,0.25);}
+        .wallet-btn:hover{filter:brightness(1.1);box-shadow:0 4px 18px rgba(59,130,246,0.35);}
+        .profile-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;}
+
+        /* --- LAYOUT --- */
+        main{max-width:1200px;margin:0 auto;padding:3rem 1.5rem;position:relative;z-index:10;}
+        .back-link{color:var(--text-muted);font-size:0.9rem;cursor:pointer;margin-bottom:2rem;display:inline-block;font-weight:600;transition:.2s;}
+        .back-link:hover{color:var(--text-main);}
+
+        /* --- CSS PACK --- */
+        .css-pack{width:160px;height:230px;background:linear-gradient(135deg,var(--c1),var(--c2));border-radius:4px;position:relative;margin:0 auto .5rem auto;box-shadow:0 10px 25px rgba(0,0,0,0.5),inset 0 0 0 1px rgba(255,255,255,0.1);display:flex;flex-direction:column;transition:transform .25s,filter .25s;overflow:hidden;}
+        .css-pack::before,.css-pack::after{content:'';position:absolute;left:0;width:100%;height:12px;background:repeating-linear-gradient(90deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);z-index:5;}
+        .css-pack::before{top:0;border-bottom:1px solid rgba(0,0,0,0.2);}
+        .css-pack::after{bottom:0;border-top:1px solid rgba(0,0,0,0.2);}
+        .pack-notch-left,.pack-notch-right{position:absolute;top:25px;width:4px;height:4px;background:#04060a;border-radius:10px;z-index:10;}
+        .pack-notch-left{left:-2px;}.pack-notch-right{right:-2px;}
+        .pack-items-container{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:100%;height:100px;display:flex;justify-content:center;align-items:center;z-index:5;pointer-events:none;}
+        .pack-item-img{width:65px;height:65px;object-fit:contain;position:absolute;filter:drop-shadow(0 5px 10px rgba(0,0,0,0.6));}
+        .pack-item-img:nth-child(1){transform:rotate(-15deg) translateX(-15px);z-index:1;}
+        .pack-item-img:nth-child(2){transform:rotate(10deg) translateX(15px);z-index:2;width:75px;height:75px;}
+        .css-pack-inner{margin:12px 10px;flex:1;background:linear-gradient(to bottom,rgba(255,255,255,0.2) 0%,rgba(255,255,255,0) 40%,rgba(0,0,0,0.2) 100%);border-radius:4px;box-shadow:inset 0 2px 5px rgba(255,255,255,0.4),inset 0 -5px 15px rgba(0,0,0,0.4);display:flex;justify-content:center;align-items:flex-start;padding-top:20px;position:relative;z-index:2;}
+        .css-pack-name{position:absolute;bottom:20px;left:0;width:100%;color:white;font-weight:800;font-size:0.95rem;text-align:center;text-transform:uppercase;line-height:1.1;text-shadow:0 2px 5px rgba(0,0,0,0.8);z-index:20;padding:0 5px;}
+
+        /* --- SPINNER --- */
+        .spinner-section{text-align:left;margin-bottom:4rem;padding-top:0;}
+        .opening-header{display:flex;align-items:flex-end;gap:1.25rem;margin:0.25rem 0 2.25rem;}
+        .opening-pack{width:99px;height:142px;flex-shrink:0;}
+        .opening-pack .css-pack{transform:scale(0.62);transform-origin:top left;margin:0;}
+        .opening-meta{display:flex;flex-direction:column;padding-bottom:6px;}
+        .case-header-title{font-size:1.9rem;font-weight:800;letter-spacing:-0.5px;margin:0;color:var(--text-main);}
+        .case-header-subtitle{font-size:0.95rem;color:var(--text-muted);font-weight:600;margin:0.3rem 0 0;}
+        .spinners-container-stack{display:flex;flex-direction:column;gap:1rem;margin:2rem 0;width:100%;min-height:200px;}
+        .reel-container{position:relative;width:100%;height:260px;overflow:hidden;background:radial-gradient(circle at center,rgba(255,255,255,0.03) 0%,transparent 70%);border-radius:12px;border:1px solid rgba(255,255,255,0.03);mask-image:linear-gradient(to right,transparent,black 15%,black 85%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 15%,black 85%,transparent);transition:border-color .4s,box-shadow .4s;}
+        .reel-container.gold-active{border-color:rgba(250,204,21,0.3);box-shadow:0 0 40px rgba(250,204,21,0.08),inset 0 0 40px rgba(250,204,21,0.03);}
+        .center-triangle-top,.center-triangle-bottom{position:absolute;left:50%;transform:translateX(-50%);width:0;height:0;z-index:200;transition:opacity .2s;opacity:0;}
+        .center-triangle-top{top:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid var(--gold-spin);}
+        .center-triangle-bottom{bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:11px solid var(--gold-spin);}
+        .reel-track{display:flex;height:100%;width:max-content;align-items:center;}
+        .spin-item{width:var(--reel-item-width);height:100%;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;transition:transform .15s ease-out,opacity .3s ease;z-index:1;}
+        .spin-item img{width:60%;height:110px;object-fit:contain;filter:drop-shadow(0 10px 20px rgba(0,0,0,0.5));z-index:10;margin-bottom:34px;position:relative;}
+        .spin-item::before{content:'';position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);width:90px;height:90px;background:var(--rarity);filter:blur(28px);opacity:0;z-index:0;border-radius:50%;transition:all .15s ease-out;pointer-events:none;}
+        .spin-item.active{transform:scale(1.08);z-index:50;}
+        .spin-item.active::before{opacity:0.55;filter:blur(30px);width:110px;height:110px;}
+        .spin-item.winner{transform:scale(1.15);z-index:60;animation:winPop .4s ease-out;}
+        .spin-item.winner::before{opacity:1;transform:translate(-50%,-50%);width:130px;height:130px;filter:blur(34px);}
+        .spin-item-info{position:absolute;bottom:34px;width:100%;text-align:center;opacity:0;transform:translateY(8px);transition:all .3s ease;z-index:20;}
+        .spin-item.winner .spin-item-info{opacity:1;transform:translateY(0);}
+        .spin-item-name{font-size:0.9rem;font-weight:700;color:var(--text-main);margin-bottom:3px;}
+        .spin-item-price{font-size:1.1rem;font-weight:800;color:var(--gold-spin);}
+
+        /* --- CONTROLS --- */
+        .controls-row{display:flex;justify-content:center;align-items:center;gap:0.75rem;margin-top:1rem;border-bottom:1px solid var(--border-light);padding-bottom:3rem;}
+        .qty-selector{display:flex;align-items:center;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.05);height:44px;margin-right:1rem;}
+        .qty-btn{background:transparent;border:none;color:var(--text-muted);width:36px;height:100%;font-size:1.2rem;font-weight:500;cursor:pointer;transition:.2s;}
+        .qty-btn:hover{background:rgba(255,255,255,0.1);color:white;}
+        .qty-btn:disabled{opacity:.4;cursor:not-allowed;}
+        .qty-text{color:white;padding:0 12px;font-weight:700;font-size:0.95rem;min-width:40px;text-align:center;}
+        .btn-open{background:linear-gradient(135deg,var(--btn-open-from),var(--btn-open-to));color:white;font-weight:700;border:none;padding:0 2.2rem;height:44px;border-radius:8px;cursor:pointer;font-size:1.05rem;transition:.2s;box-shadow:0 2px 14px rgba(74,222,128,0.2);}
+        .btn-open:hover:not(:disabled){filter:brightness(1.1);box-shadow:0 4px 20px rgba(74,222,128,0.3);}
+        .btn-open:disabled{filter:brightness(0.5);cursor:not-allowed;box-shadow:none;}
+        .btn-demo{background:var(--btn-demo-bg);color:#c8cdd8;font-weight:700;border:none;padding:0 1.8rem;height:44px;border-radius:8px;cursor:pointer;font-size:1.05rem;transition:.2s;}
+        .btn-demo:hover:not(:disabled){background:#353b48;color:white;}
+        .btn-demo:disabled{filter:brightness(0.5);cursor:not-allowed;}
+        .fast-mode-toggle{background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:.2s;margin-left:1rem;}
+        .fast-mode-toggle.active{color:var(--gold-spin);background:rgba(250,204,21,0.1);}
+        .fast-mode-toggle svg{width:20px;height:20px;fill:currentColor;}
+        #spin-result-msg{text-align:center;margin-bottom:1rem;font-weight:800;min-height:28px;font-size:1.2rem;}
+        .result-gold{color:var(--gold-spin);text-shadow:0 0 20px rgba(250,204,21,0.5);animation:goldTextPulse 1s ease infinite;}
+
+        /* --- GRIDS --- */
+        .section-title{font-size:1.3rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:1.5rem;color:var(--text-main);}
+        .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:3rem;}
+        .grid-item{background:var(--bg-card);backdrop-filter:blur(8px);border-radius:10px;padding:1.5rem 1rem;display:flex;flex-direction:column;align-items:center;position:relative;border:1px solid var(--border-light);transition:.25s;cursor:default;overflow:hidden;}
+        .grid-item:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.15);box-shadow:0 8px 30px rgba(0,0,0,0.3);}
+        .grid-item::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:var(--rarity);filter:blur(30px);opacity:0.12;z-index:1;pointer-events:none;}
+        .grid-item::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--rarity);opacity:0.5;border-radius:10px 10px 0 0;}
+        .item-odds{font-size:0.75rem;font-weight:700;color:#cbd5e1;margin-bottom:1rem;text-align:center;width:100%;z-index:5;}
+        .grid-item img{width:90px;height:90px;object-fit:contain;margin-bottom:1rem;z-index:2;filter:drop-shadow(0 5px 10px rgba(0,0,0,0.5));}
+        .item-name{font-size:0.8rem;font-weight:500;color:var(--text-muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;margin-bottom:0.2rem;z-index:5;}
+        .item-price{font-size:0.95rem;font-weight:800;color:var(--text-main);z-index:5;}
+
+        .browse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;}
+        .browse-card{background:transparent;border:none;padding:1.5rem;display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;transition:.25s;border-radius:12px;}
+        .browse-card:hover{background:rgba(255,255,255,0.02);}
+        .browse-card:hover .css-pack{transform:translateY(-8px) scale(1.02);filter:brightness(1.1);}
+        .browse-card .price{color:var(--text-main);font-weight:700;font-size:1.1rem;margin-top:0.5rem;}
+
+        .fallback-red{width:80%;height:80%;border:1px dashed #ef4444;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:0.75rem;font-weight:600;text-align:center;word-break:break-all;border-radius:8px;z-index:10;position:relative;}
+
+        .sell-label{color:var(--btn-open-from);font-weight:800;cursor:pointer;}
+
+        /* --- KEYFRAMES --- */
+        @keyframes winPop{0%{transform:scale(1);}50%{transform:scale(1.22);}100%{transform:scale(1.15);}}
+        @keyframes goldTextPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+        .fade-in{animation:fadeIn .3s ease-out;}
+
+        /* --- RESPONSIVE: TABLET --- */
+        @media(max-width:1024px){
+            :root{--reel-item-width:180px;}
+            main{padding:2rem 1.25rem;}
+            .browse-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1.25rem;}
+        }
+        /* --- RESPONSIVE: MOBILE --- */
+        @media(max-width:640px){
+            :root{--reel-item-width:130px;}
+            nav{padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;}
+            .nav-left{gap:1rem;flex:1;min-width:0;}
+            .nav-links{gap:0.75rem;font-size:0.85rem;}
+            .nav-right{gap:0.5rem;}
+            .wallet-btn{padding:0.45rem 0.75rem;font-size:0.85rem;}
+            .cart-btn{padding:0.4rem 0.65rem;font-size:0.8rem;}
+            .cart-badge{width:18px;height:18px;font-size:0.7rem;}
+            .profile-btn{width:30px;height:30px;font-size:0.85rem;}
+            main{padding:1.5rem 0.75rem;}
+            .browse-grid{grid-template-columns:repeat(2,1fr);gap:0.75rem;}
+            .browse-card{padding:1rem 0.5rem;}
+            .css-pack{width:120px;height:175px;}
+            .css-pack-name{font-size:0.75rem;}
+            .pack-item-img{width:50px !important;height:50px !important;}
+            .pack-item-img:nth-child(2){width:58px !important;height:58px !important;}
+            .browse-card .price{font-size:0.95rem;}
+            .opening-header{flex-direction:column;align-items:flex-start;gap:0.75rem;}
+            .opening-pack{width:80px;height:115px;}
+            .opening-pack .css-pack{transform:scale(0.5);}
+            .case-header-title{font-size:1.4rem;}
+            .case-header-subtitle{font-size:0.85rem;}
+            .reel-container{height:190px;}
+            .spin-item img{height:65px;width:70%;margin-bottom:24px;}
+            .spin-item-name{font-size:0.75rem;}
+            .spin-item-price{font-size:0.85rem;}
+            .controls-row{flex-wrap:wrap;justify-content:center;gap:0.5rem;padding-bottom:2rem;}
+            .qty-selector{margin-right:0.5rem;height:40px;}
+            .qty-btn{width:34px;}
+            .btn-open{padding:0 1.4rem;font-size:0.9rem;height:40px;}
+            .btn-demo{padding:0 1.2rem;font-size:0.9rem;height:40px;}
+            .fast-mode-toggle{margin-left:0.25rem;}
+            .section-title{font-size:1.1rem;margin-bottom:1rem;}
+            .items-grid{grid-template-columns:repeat(2,1fr);gap:0.75rem;}
+            .grid-item{padding:1rem 0.75rem;}
+            .grid-item img{width:70px;height:70px;}
+            .item-name{font-size:0.75rem;}
+            .item-price{font-size:0.85rem;}
+            #spin-result-msg{font-size:1rem;}
+        }
+        /* --- RESPONSIVE: SMALL PHONES --- */
+        @media(max-width:420px){
+            :root{--reel-item-width:110px;}
+            nav{padding:0.6rem 0.75rem;}
+            .nav-left{width:100%;justify-content:space-between;}
+            .nav-right{width:100%;justify-content:flex-end;}
+            .logo{font-size:1.1rem;gap:0.4rem;}
+            .logo svg{width:18px;height:18px;}
+            .nav-links{gap:0.75rem;font-size:0.8rem;}
+            .wallet-btn{padding:0.4rem 0.6rem;font-size:0.8rem;}
+            .cart-btn{padding:0.35rem 0.55rem;font-size:0.75rem;}
+            main{padding:1.25rem 0.5rem;}
+            .browse-grid{gap:0.5rem;}
+            .css-pack{width:100px;height:150px;}
+            .pack-item-img{width:40px !important;height:40px !important;}
+            .pack-item-img:nth-child(2){width:48px !important;height:48px !important;}
+            .browse-card .price{font-size:0.85rem;}
+            .case-header-title{font-size:1.2rem;}
+            .reel-container{height:160px;}
+            .spin-item img{height:50px;margin-bottom:20px;}
+            .controls-row{gap:0.4rem;}
+            .btn-open{padding:0 1rem;font-size:0.8rem;height:38px;}
+            .btn-demo{padding:0 .8rem;font-size:0.8rem;height:38px;}
+            .qty-selector{height:38px;}
+            .qty-btn{width:30px;font-size:1rem;}
+            .qty-text{padding:0 8px;font-size:0.85rem;min-width:32px;}
+            .items-grid{gap:0.5rem;}
+            .grid-item{padding:0.75rem 0.5rem;}
+            .grid-item img{width:60px;height:60px;margin-bottom:0.5rem;}
+        }
+    </style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useLayoutEffect,useRef,useCallback,useMemo}=React;
+
+/* ================================================================
+   AUDIO ENGINE — synthesized sounds via Web Audio API
+   ================================================================ */
+class AudioEngine{
+    constructor(){this.ctx=new(window.AudioContext||window.webkitAudioContext)();}
+    _r(){if(this.ctx.state==='suspended')this.ctx.resume();}
+    _osc(type,freq,startT,vol,decay){
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.connect(g);g.connect(this.ctx.destination);
+        o.type=type;o.frequency.value=freq;
+        g.gain.setValueAtTime(0,startT);
+        g.gain.linearRampToValueAtTime(vol,startT+0.03);
+        g.gain.exponentialRampToValueAtTime(0.001,startT+decay);
+        o.start(startT);o.stop(startT+decay);
+    }
+    tick(pitch=1){
+        this._r();const t=this.ctx.currentTime;
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.connect(g);g.connect(this.ctx.destination);
+        o.type='triangle';
+        o.frequency.setValueAtTime(700*pitch,t);
+        o.frequency.exponentialRampToValueAtTime(180,t+0.035);
+        g.gain.setValueAtTime(0.13,t);
+        g.gain.exponentialRampToValueAtTime(0.001,t+0.045);
+        o.start(t);o.stop(t+0.05);
+    }
+    goldTrigger(){
+        this._r();const t=this.ctx.currentTime;
+        [523.25,659.25,783.99,1046.50].forEach((f,i)=>{
+            this._osc('sine',f,t+i*0.11,0.22,0.7);
+        });
+        this._osc('sine',2093,t+0.35,0.05,1.2);
+    }
+    win(rarity){
+        this._r();const t=this.ctx.currentTime;
+        const R={
+            common:  {notes:[523.25],            type:'sine',    sp:0,   vol:0.18,dec:0.4},
+            rare:    {notes:[523.25,659.25],      type:'sine',    sp:0.12,vol:0.2, dec:0.6},
+            epic:    {notes:[392,523.25,659.25],   type:'triangle',sp:0.1, vol:0.22,dec:0.9},
+            legendary:{notes:[392,440,523.25,659.25,783.99],type:'triangle',sp:0.08,vol:0.25,dec:1.3}
+        };
+        const cfg=R[rarity]||R.common;
+        cfg.notes.forEach((f,i)=>this._osc(cfg.type,f,t+i*cfg.sp,cfg.vol,cfg.dec));
+        if(rarity==='legendary'){
+            const b=this.ctx.createOscillator(),bg=this.ctx.createGain();
+            b.connect(bg);bg.connect(this.ctx.destination);
+            b.type='sine';b.frequency.value=65.41;
+            bg.gain.setValueAtTime(0.22,t+0.35);
+            bg.gain.exponentialRampToValueAtTime(0.001,t+2);
+            b.start(t+0.35);b.stop(t+2);
+        }
+    }
+}
+const audio=new AudioEngine();
+
+/* ================================================================
+   GAME DATA
+   ================================================================ */
+const IMAGES={
+    dirt:"assets/images/items/dirt.png","1-dollar-bill":"assets/images/items/1-dollar-bill.png",
+    gold:"assets/images/items/gold.png",mousepad:"assets/images/items/mousepad.png",
+    usbdrive:"assets/images/items/usb-drive.png",mouse:"assets/images/items/gaming-mouse.png",
+    keyboard:"assets/images/items/mechanical-keyboard.png",airpods:"assets/images/items/airpods.png",
+    controller:"assets/images/items/xbox-controller.png",switch:"assets/images/items/nintendo-switch.png",
+    ps5:"assets/images/items/ps5.png",rolex:"assets/images/items/rolex.png",
+    rtx:"assets/images/items/rtx4090.png",penny:"assets/images/items/2007-us-penny.png",
+    highpowerpc:"assets/images/items/red-LED-high-power-pc.png",shovel:"assets/images/items/shovel.png",
+    bill500:"assets/images/items/500-dollar-bill.png",plate:"assets/images/items/clean-plate.png",
+    pencil:"assets/images/items/black-pencil.png",coffee:"assets/images/items/cup-with-coffee.png",
+    iphone12:"assets/images/items/purple-iphone-12.png",iphone15:"assets/images/items/iphone-15-pro.png",
+    bmwx5:"assets/images/items/brown-bmw-x5.png",dice:"assets/images/items/dice-with-dicebox.png",
+    basketball:"assets/images/items/spading-basketball.png",notebook:"assets/images/items/old-notebook.png",
+    pizzabox:"assets/images/items/empty-pizza-box.png",vintlamp:"assets/images/items/vintage-lamp.png",
+    lightbulb:"assets/images/items/lightbulb.png",legosticker:"assets/images/items/lego-sticker.png",
+    ecigar:"assets/images/items/e-cigar.png",thanksticker:"assets/images/items/thanksgiving-sticker.png",
+    greyhoodie:"assets/images/items/grey-hoodie.png",lolhoodie:"assets/images/items/league-of-legends-hoodie.png",
+    chess:"assets/images/items/chess-set.png",grass:"assets/images/items/grass-you-can-touch.png",
+    rope:"assets/images/items/rope.png",duck:"assets/images/items/plastic-duck.png",
+    poseidon:"assets/images/items/Poseidon-toy-figurine.png",xylophone:"assets/images/items/Xylophone-toy.png",
+    camera:"assets/images/items/Sony-ZV1-camera.png",bmwsticker:"assets/images/items/bmw-sticker.png",
+    gt86:"assets/images/items/Race-Gt86-Red-White-Toyota.png",waterbottle:"assets/images/items/Plastic-water-bottle.png",
+    papers:"assets/images/items/messy-stack-paper.png",chair:"assets/images/items/wooden-chair.png"
+};
+
+const ITEMS={
+    dirt:{name:'Dirt',price:0.01,imgKey:'dirt',rarity:'common'},
+    penny:{name:'Penny',price:0.01,imgKey:'penny',rarity:'common'},
+    grass:{name:'Patch of Grass',price:0.01,imgKey:'grass',rarity:'common'},
+    pizzabox:{name:'Empty Pizza Box',price:0.05,imgKey:'pizzabox',rarity:'common'},
+    papers:{name:'Stack of Papers',price:0.05,imgKey:'papers',rarity:'common'},
+    waterbottle:{name:'Water Bottle',price:0.10,imgKey:'waterbottle',rarity:'common'},
+    pencil:{name:'Pencil',price:0.15,imgKey:'pencil',rarity:'common'},
+    lightbulb:{name:'Light Bulb',price:0.25,imgKey:'lightbulb',rarity:'common'},
+    thanksticker:{name:'Turkey Sticker',price:0.25,imgKey:'thanksticker',rarity:'common'},
+    plate:{name:'Clean Plate',price:0.50,imgKey:'plate',rarity:'common'},
+    legosticker:{name:'Lego Sticker',price:0.50,imgKey:'legosticker',rarity:'common'},
+    bmwsticker:{name:'BMW Sticker',price:0.75,imgKey:'bmwsticker',rarity:'common'},
+    rope:{name:'Rope',price:0.75,imgKey:'rope',rarity:'common'},
+    duck:{name:'Rubber Duck',price:1.00,imgKey:'duck',rarity:'common'},
+    dollar:{name:'1 Dollar Bill',price:1.00,imgKey:'1-dollar-bill',rarity:'common'},
+    mousepad:{name:'Mousepad',price:1.50,imgKey:'mousepad',rarity:'common'},
+    notebook:{name:'Old Notebook',price:1.50,imgKey:'notebook',rarity:'common'},
+    usb:{name:'USB Drive',price:2.00,imgKey:'usbdrive',rarity:'common'},
+    coffee:{name:'Cup of Coffee',price:3.00,imgKey:'coffee',rarity:'common'},
+    shovel:{name:'Shovel',price:5.00,imgKey:'shovel',rarity:'common'},
+    chair:{name:'Wooden Chair',price:5.00,imgKey:'chair',rarity:'common'},
+    dice:{name:'Dice Set',price:8.00,imgKey:'dice',rarity:'rare'},
+    ecigar:{name:'E-Cigarette',price:12.00,imgKey:'ecigar',rarity:'rare'},
+    vintlamp:{name:'Vintage Lamp',price:15.00,imgKey:'vintlamp',rarity:'rare'},
+    xylophone:{name:'Xylophone Toy',price:15.00,imgKey:'xylophone',rarity:'rare'},
+    mouse:{name:'Gaming Mouse',price:20.00,imgKey:'mouse',rarity:'rare'},
+    poseidon:{name:'Poseidon Figurine',price:25.00,imgKey:'poseidon',rarity:'rare'},
+    basketball:{name:'Spalding Basketball',price:30.00,imgKey:'basketball',rarity:'rare'},
+    greyhoodie:{name:'Grey Hoodie',price:35.00,imgKey:'greyhoodie',rarity:'rare'},
+    chess:{name:'Chess Set',price:40.00,imgKey:'chess',rarity:'rare'},
+    lolhoodie:{name:'LoL Hoodie',price:45.00,imgKey:'lolhoodie',rarity:'rare'},
+    controller:{name:'Xbox Controller',price:69.99,imgKey:'controller',rarity:'epic'},
+    keyboard:{name:'Mech Keyboard',price:120.00,imgKey:'keyboard',rarity:'epic'},
+    airpods:{name:'AirPods',price:159.00,imgKey:'airpods',rarity:'epic'},
+    nswitch:{name:'Nintendo Switch',price:299.99,imgKey:'switch',rarity:'epic'},
+    iphone12:{name:'iPhone 12',price:399.00,imgKey:'iphone12',rarity:'epic'},
+    bill500:{name:'$500 Bill',price:500.00,imgKey:'bill500',rarity:'epic'},
+    camera:{name:'Sony ZV-1 Camera',price:650.00,imgKey:'camera',rarity:'epic'},
+    ps5:{name:'PlayStation 5',price:499.99,imgKey:'ps5',rarity:'legendary'},
+    iphone15:{name:'iPhone 15 Pro',price:999.00,imgKey:'iphone15',rarity:'legendary'},
+    rtx:{name:'RTX 4090',price:1599.00,imgKey:'rtx',rarity:'legendary'},
+    highpowerpc:{name:'Gaming PC',price:3500.00,imgKey:'highpowerpc',rarity:'legendary'},
+    rolex:{name:'Rolex Watch',price:15000.00,imgKey:'rolex',rarity:'legendary'},
+    gt86:{name:'Toyota GT86',price:28000.00,imgKey:'gt86',rarity:'legendary'},
+    bmwx5:{name:'BMW X5',price:55000.00,imgKey:'bmwx5',rarity:'legendary'}
+};
+
+const CASES=[
+    {id:'pennyflip',name:'Penny Flip',price:0.10,c1:'#52525b',c2:'#27272a',displayItems:['penny','dirt'],
+     normal:[['penny',30],['dirt',22],['grass',18],['pizzabox',10],['papers',8],['waterbottle',5],['pencil',3],['lightbulb',2],['GOLD',2]],
+     gold:[['dollar',35],['plate',25],['duck',20],['notebook',12],['bmwsticker',8]]},
+    {id:'junkdrawer',name:'Junk Drawer',price:0.50,c1:'#92400e',c2:'#451a03',displayItems:['pizzabox','rope'],
+     normal:[['dirt',16],['grass',12],['pizzabox',12],['waterbottle',9],['pencil',8],['penny',7],['papers',6],['lightbulb',5],['duck',4],['rope',4],['plate',3],['thanksticker',3],['legosticker',2],['GOLD',3]],
+     gold:[['dollar',25],['coffee',22],['notebook',18],['mousepad',15],['usb',12],['shovel',8]]},
+    {id:'dirtcheap',name:'Dirt Cheap',price:1.00,c1:'#6b7280',c2:'#374151',displayItems:['dirt','1-dollar-bill'],
+     normal:[['dirt',22],['dollar',14],['penny',12],['grass',8],['mousepad',6],['waterbottle',5],['pencil',5],['duck',4],['usb',4],['lightbulb',3],['plate',3],['notebook',2],['rope',2],['GOLD',2]],
+     gold:[['dice',25],['mouse',22],['ecigar',15],['shovel',12],['vintlamp',10],['poseidon',8],['basketball',5],['chess',3]]},
+    {id:'stickerpack',name:'Sticker Pack',price:2.00,c1:'#14b8a6',c2:'#134e4a',displayItems:['legosticker','bmwsticker'],
+     normal:[['legosticker',20],['bmwsticker',16],['thanksticker',14],['penny',10],['pencil',7],['duck',6],['lightbulb',5],['dirt',4],['papers',3],['waterbottle',3],['grass',2],['plate',2],['GOLD',3]],
+     gold:[['dice',24],['poseidon',20],['xylophone',16],['ecigar',14],['mouse',12],['chess',8],['basketball',6]]},
+    {id:'pocket',name:'Pocket Change',price:3.00,c1:'#22c55e',c2:'#14532d',displayItems:['1-dollar-bill','mousepad'],
+     normal:[['dollar',16],['dirt',10],['mousepad',9],['usb',7],['penny',6],['coffee',5],['notebook',5],['duck',4],['pencil',4],['rope',3],['shovel',3],['lightbulb',2],['mouse',2],['GOLD',3]],
+     gold:[['controller',24],['basketball',18],['greyhoodie',16],['chess',12],['ecigar',10],['vintlamp',8],['keyboard',5],['airpods',3]]},
+    {id:'dollarstore',name:'Dollar Store',price:5.00,c1:'#eab308',c2:'#713f12',displayItems:['duck','coffee'],
+     normal:[['dollar',12],['mousepad',9],['usb',8],['coffee',7],['notebook',6],['duck',5],['pencil',5],['shovel',5],['rope',4],['plate',4],['lightbulb',3],['vintlamp',3],['legosticker',3],['GOLD',3]],
+     gold:[['mouse',24],['basketball',18],['greyhoodie',15],['chess',12],['poseidon',10],['ecigar',8],['keyboard',7],['lolhoodie',6]]},
+    {id:'officeraid',name:'Office Raid',price:8.00,c1:'#64748b',c2:'#1e293b',displayItems:['pencil','notebook'],
+     normal:[['pencil',14],['notebook',12],['papers',10],['coffee',8],['lightbulb',6],['plate',6],['mousepad',6],['usb',5],['chair',4],['vintlamp',3],['dollar',3],['rope',2],['duck',2],['GOLD',3]],
+     gold:[['mouse',24],['chess',18],['greyhoodie',15],['keyboard',12],['basketball',10],['ecigar',8],['controller',7],['lolhoodie',6]]},
+    {id:'hobbybox',name:'Hobby Box',price:15.00,c1:'#f97316',c2:'#7c2d12',displayItems:['dice','xylophone'],
+     normal:[['dice',12],['duck',9],['xylophone',9],['poseidon',8],['legosticker',7],['rope',5],['coffee',5],['notebook',4],['vintlamp',4],['ecigar',3],['bmwsticker',3],['pencil',3],['GOLD',4]],
+     gold:[['basketball',20],['chess',16],['mouse',14],['greyhoodie',12],['keyboard',10],['lolhoodie',8],['controller',6],['airpods',4]]},
+    {id:'tech',name:'Tech Starter',price:25.00,c1:'#3b82f6',c2:'#1e3a8a',displayItems:['mouse','mousepad'],
+     normal:[['mousepad',14],['usb',10],['dollar',7],['pencil',5],['coffee',5],['notebook',5],['lightbulb',4],['duck',3],['mouse',5],['vintlamp',3],['keyboard',3],['ecigar',2],['GOLD',4]],
+     gold:[['controller',22],['basketball',16],['greyhoodie',14],['chess',12],['airpods',10],['lolhoodie',8],['poseidon',6],['iphone12',3]]},
+    {id:'streetwear',name:'Streetwear Drop',price:35.00,c1:'#ec4899',c2:'#831843',displayItems:['greyhoodie','lolhoodie'],
+     normal:[['bmwsticker',12],['legosticker',9],['rope',6],['duck',6],['ecigar',5],['dice',5],['coffee',4],['vintlamp',4],['notebook',3],['pencil',3],['thanksticker',3],['GOLD',4]],
+     gold:[['greyhoodie',24],['lolhoodie',20],['basketball',14],['chess',12],['controller',10],['keyboard',8],['airpods',5],['poseidon',7]]},
+    {id:'desk',name:'Desk Setup',price:50.00,c1:'#0ea5e9',c2:'#0c4a6e',displayItems:['mouse','keyboard'],
+     normal:[['usb',12],['mousepad',10],['coffee',7],['chair',6],['pencil',5],['notebook',5],['lightbulb',4],['mouse',5],['vintlamp',3],['plate',3],['papers',3],['keyboard',3],['GOLD',4]],
+     gold:[['greyhoodie',20],['lolhoodie',16],['basketball',14],['chess',12],['controller',10],['airpods',8],['iphone12',4],['camera',3]]},
+    {id:'gamer',name:'Gamer Elite',price:150.00,c1:'#10b981',c2:'#064e3b',displayItems:['controller','switch'],
+     normal:[['mouse',12],['dice',8],['ecigar',7],['usb',6],['mousepad',6],['keyboard',5],['duck',4],['coffee',3],['basketball',4],['greyhoodie',4],['vintlamp',3],['controller',3],['GOLD',5]],
+     gold:[['airpods',20],['lolhoodie',16],['chess',12],['iphone12',12],['nswitch',10],['camera',8],['ps5',5],['bill500',4]]},
+    {id:'creator',name:'Content Creator',price:200.00,c1:'#f43f5e',c2:'#881337',displayItems:['camera','iphone15'],
+     normal:[['usb',12],['mousepad',8],['mouse',6],['coffee',5],['notebook',5],['ecigar',4],['dice',4],['keyboard',4],['greyhoodie',3],['vintlamp',3],['basketball',3],['GOLD',5]],
+     gold:[['camera',24],['airpods',16],['iphone12',14],['nswitch',10],['iphone15',8],['bill500',6],['ps5',4],['highpowerpc',3]]},
+    {id:'console',name:'Console Vault',price:300.00,c1:'#a855f7',c2:'#4c1d95',displayItems:['ps5','switch'],
+     normal:[['keyboard',12],['mouse',9],['controller',8],['ecigar',6],['basketball',6],['greyhoodie',5],['vintlamp',4],['coffee',3],['lolhoodie',4],['chess',4],['airpods',3],['GOLD',5]],
+     gold:[['nswitch',22],['iphone12',16],['ps5',14],['bill500',12],['camera',10],['iphone15',6],['rtx',4],['highpowerpc',2]]},
+    {id:'luxury',name:'Flex Pack',price:500.00,c1:'#f59e0b',c2:'#78350f',displayItems:['rolex','ps5'],
+     normal:[['controller',10],['basketball',8],['greyhoodie',7],['chess',6],['mouse',6],['keyboard',5],['ecigar',5],['lolhoodie',5],['airpods',4],['dice',3],['vintlamp',3],['coffee',2],['GOLD',6]],
+     gold:[['ps5',20],['bill500',16],['nswitch',14],['camera',12],['iphone15',10],['rtx',6],['highpowerpc',4],['rolex',2]]},
+    {id:'royale',name:'Jackpot Royale',price:1000.00,c1:'#ef4444',c2:'#7f1d1d',displayItems:['rolex','rtx'],
+     normal:[['controller',10],['airpods',8],['keyboard',7],['basketball',7],['chess',6],['lolhoodie',5],['greyhoodie',5],['mouse',5],['nswitch',3],['iphone12',3],['dice',3],['ecigar',2],['GOLD',6]],
+     gold:[['ps5',18],['bill500',16],['camera',14],['iphone15',12],['rtx',10],['highpowerpc',6],['gt86',3],['rolex',2]]},
+    {id:'whale',name:"Whale's Paradise",price:2500.00,c1:'#ca8a04',c2:'#713f12',displayItems:['rtx','gt86'],
+     normal:[['nswitch',12],['controller',10],['airpods',8],['keyboard',7],['iphone12',6],['lolhoodie',5],['chess',5],['basketball',5],['greyhoodie',4],['camera',3],['ecigar',3],['mouse',2],['GOLD',7]],
+     gold:[['ps5',18],['bill500',14],['iphone15',12],['rtx',12],['highpowerpc',10],['gt86',5],['rolex',3],['bmwx5',1]]},
+    {id:'diamond',name:'Diamond Reserve',price:5000.00,c1:'#60a5fa',c2:'#1e3a5f',displayItems:['highpowerpc','bmwx5'],
+     normal:[['nswitch',10],['iphone12',8],['controller',8],['airpods',7],['keyboard',6],['ps5',5],['camera',5],['lolhoodie',4],['chess',4],['basketball',3],['greyhoodie',3],['bill500',3],['GOLD',8]],
+     gold:[['iphone15',22],['rtx',18],['highpowerpc',16],['gt86',8],['rolex',5],['bmwx5',3]]},
+    {id:'thevault',name:'The Vault',price:10000.00,c1:'#fbbf24',c2:'#1a1a2e',displayItems:['bmwx5','rolex'],
+     normal:[['ps5',10],['nswitch',9],['iphone12',8],['camera',7],['controller',7],['airpods',6],['keyboard',5],['iphone15',4],['bill500',4],['lolhoodie',3],['chess',3],['basketball',2],['greyhoodie',2],['GOLD',10]],
+     gold:[['rtx',22],['highpowerpc',20],['gt86',14],['rolex',10],['bmwx5',5]]}
+];
+
+/* ================================================================
+   UTILITIES
+   ================================================================ */
+function getItem(id){return{...ITEMS[id],id};}
+function goldToken(){return{id:'GOLD',name:'Gold Spin',price:0,imgKey:'gold',rarity:'gold-spin',isToken:true};}
+function getItemWidth(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--reel-item-width'))||220;}
+function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function getDrop(caseObj,isDemo,isGoldPool){
+    const base=isGoldPool?caseObj.gold:caseObj.normal;
+    const entries=base.map(([id,w])=>{
+        let ww=w;
+        if(isDemo&&!isGoldPool){ww=(id==='GOLD')?w*20:w*0.6;}
+        if(isDemo&&isGoldPool&&ITEMS[id]&&ITEMS[id].rarity==='legendary')ww=w*5;
+        return[id,ww];
+    });
+    const total=entries.reduce((a,[,w])=>a+w,0);
+    let rand=Math.random()*total;
+    for(const[id,w]of entries){if((rand-=w)<=0)return id==='GOLD'?goldToken():getItem(id);}
+    const last=entries[entries.length-1][0];
+    return last==='GOLD'?goldToken():getItem(last);
+}
+
+function bestRarity(items){
+    const order={common:0,rare:1,epic:2,legendary:3};
+    let best='common';
+    items.filter(i=>!i.isToken).forEach(i=>{if((order[i.rarity]||0)>(order[best]||0))best=i.rarity;});
+    return best;
+}
+
+const loadedImages={};
+for(const key in IMAGES){const img=new Image();img.onload=()=>loadedImages[key]=true;img.onerror=()=>loadedImages[key]=false;img.src=IMAGES[key];}
+
+/* ================================================================
+   STARFIELD (vanilla canvas — runs outside React)
+   ================================================================ */
+function initStarfield(){
+    const canvas=document.getElementById('starfield');
+    const ctx=canvas.getContext('2d');
+    let stars=[];
+    function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+    window.addEventListener('resize',resize);resize();
+    for(let i=0;i<34;i++){
+        stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*0.7+0.25,
+            vx:(Math.random()-0.5)*0.04,vy:(Math.random()-0.5)*0.04,alpha:Math.random()*0.22,
+            dAlpha:(Math.random()*0.0035+0.0012)*(Math.random()<0.5?1:-1),color:'#ffffff'});
+    }
+    (function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        stars.forEach(s=>{
+            s.x+=s.vx;s.y+=s.vy;s.alpha+=s.dAlpha;
+            if(s.alpha<=0){s.alpha=0;s.dAlpha*=-1;s.x=Math.random()*canvas.width;s.y=Math.random()*canvas.height;}
+            else if(s.alpha>=0.32){s.alpha=0.32;s.dAlpha*=-1;}
+            if(s.x<0)s.x=canvas.width;if(s.x>canvas.width)s.x=0;
+            if(s.y<0)s.y=canvas.height;if(s.y>canvas.height)s.y=0;
+            ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+            ctx.fillStyle=s.color;ctx.globalAlpha=s.alpha;ctx.fill();
+        });
+        ctx.globalAlpha=1;requestAnimationFrame(draw);
+    })();
+}
+
+/* ================================================================
+   REACT COMPONENTS
+   ================================================================ */
+
+function ItemImage({imgKey}){
+    const[err,setErr]=useState(false);
+    if(!imgKey)return null;
+    if(err||loadedImages[imgKey]===false)return <div className="fallback-red">MISSING<br/>{(IMAGES[imgKey]||'').split('/').pop()}</div>;
+    return <img src={IMAGES[imgKey]} draggable={false} onError={()=>setErr(true)}/>;
+}
+
+function CSSPack({caseData,style}){
+    return(
+        <div className="css-pack" style={{'--c1':caseData.c1,'--c2':caseData.c2,...(style||{})}}>
+            <div className="pack-notch-left"/>
+            <div className="pack-notch-right"/>
+            {caseData.displayItems&&caseData.displayItems.length>0&&(
+                <div className="pack-items-container">
+                    {caseData.displayItems.map((k,i)=><img key={i} src={IMAGES[k]} className="pack-item-img" onError={e=>e.target.style.display='none'}/>)}
+                </div>
+            )}
+            <div className="css-pack-inner"/>
+            <div className="css-pack-name">{caseData.name}</div>
+        </div>
+    );
+}
+
+function Navbar({page,showPage,balance,addBalance,invCount}){
+    return(
+        <nav>
+            <div className="nav-left">
+                <div className="logo" onClick={()=>showPage('browser')}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#ffffff"/></svg>
+                    RoUnbox
+                </div>
+                <div className="nav-links">
+                    <span className={page==='browser'?'active':''} onClick={()=>showPage('browser')}>Packs</span>
+                    <span className={page==='inventory'?'active':''} onClick={()=>showPage('inventory')}>Inventory</span>
+                </div>
+            </div>
+            <div className="nav-right">
+                <button className="cart-btn" onClick={()=>showPage('inventory')}>Cart <div className="cart-badge">{invCount}</div></button>
+                <button className="wallet-btn" onClick={addBalance}>$ {fmt(balance)}</button>
+                <div className="profile-btn">&#9787;</div>
+            </div>
+        </nav>
+    );
+}
+
+function PackBrowser({onOpenCase}){
+    return(
+        <div className="fade-in">
+            <h2 className="section-title">Packs</h2>
+            <div className="browse-grid">
+                {CASES.map(c=>(
+                    <div key={c.id} className="browse-card" onClick={()=>onOpenCase(c)}>
+                        <CSSPack caseData={c}/>
+                        <div className="price">${fmt(c.price)}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function Inventory({inventory,setInventory,balance,setBalance}){
+    const sellItem=idx=>{setBalance(b=>b+inventory[idx].price);setInventory(inv=>{const n=[...inv];n.splice(idx,1);return n;});};
+    const sellAll=()=>{setBalance(b=>b+inventory.reduce((s,i)=>s+i.price,0));setInventory([]);};
+    return(
+        <div className="fade-in">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'2rem'}}>
+                <h2 className="section-title" style={{margin:0}}>Your Inventory</h2>
+                <button className="btn-demo" style={{color:'#ef4444'}} onClick={sellAll}>Sell All</button>
+            </div>
+            <div className="items-grid">
+                {inventory.map((item,idx)=>(
+                    <div key={idx} className="grid-item" style={{'--rarity':`var(--${item.rarity})`,cursor:'pointer'}} onClick={()=>sellItem(idx)}>
+                        <div className="item-odds sell-label">SELL ITEM</div>
+                        <ItemImage imgKey={item.imgKey}/>
+                        <div className="item-name">{item.name}</div>
+                        <div className="item-price">${fmt(item.price)}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* ================================================================
+   CASE OPENER — the big one
+   ================================================================ */
+function CaseOpener({activeCase,openQty,setOpenQty,fastMode,setFastMode,isSpinning,setIsSpinning,balance,setBalance,inventory,setInventory,showPage}){
+    const[reelData,setReelData]=useState([]);
+    const[resultMsg,setResultMsg]=useState('');
+    const[resultClass,setResultClass]=useState('');
+    const[isGoldPhase,setIsGoldPhase]=useState(false);
+
+    const trackRefs=useRef([]);
+    const containerRefs=useRef([]);
+    const arrowTopRefs=useRef([]);
+    const arrowBotRefs=useRef([]);
+    const animIds=useRef([]);
+    const spinningRef=useRef(false);
+    const pendingRef=useRef(null);
+    const[animTrigger,setAnimTrigger]=useState(0);
+
+    const WIN_INDEX=50;
+
+    const packContents=useMemo(()=>{
+        if(!activeCase)return[];
+        const c=activeCase;
+        const nTotal=c.normal.reduce((a,[,w])=>a+w,0);
+        const gEntry=c.normal.find(e=>e[0]==='GOLD');
+        const gProb=gEntry?gEntry[1]/nTotal:0;
+        const gTotal=c.gold.reduce((a,[,w])=>a+w,0);
+        const pm={};
+        c.normal.forEach(([id,w])=>{if(id!=='GOLD')pm[id]=(pm[id]||0)+w/nTotal;});
+        c.gold.forEach(([id,w])=>{pm[id]=(pm[id]||0)+gProb*(w/gTotal);});
+        return Object.keys(pm).map(id=>({...ITEMS[id],id,absProb:pm[id]*100})).sort((a,b)=>b.price-a.price);
+    },[activeCase]);
+
+    const populateIdle=useCallback((qty)=>{
+        const ids=activeCase.normal.filter(e=>e[0]!=='GOLD').map(e=>e[0]);
+        const d=[];
+        for(let q=0;q<(qty||openQty);q++){
+            const items=[];
+            for(let i=0;i<15;i++)items.push(getItem(ids[Math.floor(Math.random()*ids.length)]));
+            d.push({items,wonItem:null});
+        }
+        setReelData(d);
+        setResultMsg('');setResultClass('');setIsGoldPhase(false);
+    },[activeCase,openQty]);
+
+    useEffect(()=>{if(activeCase)populateIdle();},[activeCase]);
+
+    const changeQty=amt=>{
+        if(isSpinning)return;
+        const nq=Math.max(1,Math.min(5,openQty+amt));
+        setOpenQty(nq);
+        const ids=activeCase.normal.filter(e=>e[0]!=='GOLD').map(e=>e[0]);
+        const d=[];
+        for(let q=0;q<nq;q++){const items=[];for(let i=0;i<15;i++)items.push(getItem(ids[Math.floor(Math.random()*ids.length)]));d.push({items,wonItem:null});}
+        setReelData(d);
+    };
+
+    const trackActive=(track,container,idx,isLeader)=>{
+        const cRect=container.getBoundingClientRect();
+        const center=cRect.left+cRect.width/2;
+        let cur=-1;
+        const loop=()=>{
+            if(!spinningRef.current)return;
+            const ch=track.children;
+            for(let i=0;i<ch.length;i++){
+                const r=ch[i].getBoundingClientRect();
+                if(r.left<=center&&r.right>=center){
+                    if(!ch[i].classList.contains('active')){
+                        for(let j=0;j<ch.length;j++)ch[j].classList.remove('active');
+                        ch[i].classList.add('active');
+                        if(cur!==i){cur=i;if(isLeader)audio.tick(0.9+Math.random()*0.2);}
+                    }
+                    break;
+                }
+            }
+            animIds.current[idx]=requestAnimationFrame(loop);
+        };
+        loop();
+    };
+
+    useLayoutEffect(()=>{
+        if(animTrigger===0||!pendingRef.current)return;
+        const{wheels,isGoldPool,isDemo}=pendingRef.current;
+        pendingRef.current=null;
+        const IW=getItemWidth();
+        const duration=fastMode?1000:4500;
+
+        wheels.forEach((_,idx)=>{
+            const track=trackRefs.current[idx];
+            const container=containerRefs.current[idx];
+            if(!track||!container)return;
+            if(arrowTopRefs.current[idx])arrowTopRefs.current[idx].style.opacity='1';
+            if(arrowBotRefs.current[idx])arrowBotRefs.current[idx].style.opacity='1';
+            track.style.transition='none';track.style.transform='translateX(0)';
+            void track.offsetHeight;
+            const cw=container.offsetWidth;
+            const off=(Math.random()*IW*0.5)-(IW*0.25);
+            const stop=(WIN_INDEX*IW)-(cw/2)+(IW/2)+off;
+            track.style.transition=`transform ${duration}ms cubic-bezier(0.1,0.8,0.1,1)`;
+            track.style.transform=`translateX(-${stop}px)`;
+            trackActive(track,container,idx,idx===0);
+        });
+
+        setTimeout(()=>{
+            if(!spinningRef.current)return;
+            const IW2=getItemWidth();
+            wheels.forEach((_,idx)=>{
+                const track=trackRefs.current[idx];
+                const container=containerRefs.current[idx];
+                if(!track||!container)return;
+                const cw=container.offsetWidth;
+                const exact=(WIN_INDEX*IW2)-(cw/2)+(IW2/2);
+                track.style.transition='transform 0.4s ease-in-out';
+                track.style.transform=`translateX(-${exact}px)`;
+            });
+            setTimeout(()=>{
+                if(!spinningRef.current)return;
+                animIds.current.forEach(id=>cancelAnimationFrame(id));
+                const wonItems=[];
+                wheels.forEach((wh,idx)=>{
+                    const track=trackRefs.current[idx];
+                    if(!track)return;
+                    const ch=track.children;
+                    for(let i=0;i<ch.length;i++){
+                        if(i!==WIN_INDEX){ch[i].style.opacity='0';ch[i].classList.remove('active');}
+                        else{ch[i].classList.remove('active');ch[i].classList.add('winner');}
+                    }
+                    if(arrowTopRefs.current[idx])arrowTopRefs.current[idx].style.opacity='0';
+                    if(arrowBotRefs.current[idx])arrowBotRefs.current[idx].style.opacity='0';
+                    wonItems.push(wh.wonItem);
+                });
+                const br=bestRarity(wonItems);
+                audio.win(br);
+
+                const goldHits=wonItems.filter(i=>i.isToken);
+                if(goldHits.length>0&&!isGoldPool){
+                    if(!isDemo){const ng=wonItems.filter(i=>!i.isToken);setInventory(inv=>[...inv,...ng]);}
+                    setResultMsg('GOLD SPIN!');setResultClass('result-gold');
+                    audio.goldTrigger();
+                    setTimeout(()=>{
+                        setIsGoldPhase(true);
+                        const gw=[];
+                        for(let q=0;q<goldHits.length;q++){
+                            const items=[];
+                            for(let i=0;i<70;i++)items.push(getDrop(activeCase,isDemo,true));
+                            const won=getDrop(activeCase,isDemo,true);items[WIN_INDEX]=won;
+                            gw.push({items,wonItem:won});
+                        }
+                        pendingRef.current={wheels:gw,isGoldPool:true,isDemo};
+                        setReelData(gw);
+                        setAnimTrigger(t=>t+1);
+                    },1500);
+                }else{
+                    if(!isDemo)setInventory(inv=>[...inv,...wonItems]);
+                    if(isGoldPool){
+                        setTimeout(()=>{
+                            spinningRef.current=false;setIsSpinning(false);
+                            populateIdle();
+                        },2200);
+                    }else{
+                        spinningRef.current=false;setIsSpinning(false);
+                    }
+                }
+            },400);
+        },duration);
+    },[animTrigger]);
+
+    const roll=isDemo=>{
+        if(isSpinning||!activeCase)return;
+        const cost=activeCase.price*openQty;
+        if(!isDemo&&balance<cost){alert('Insufficient Balance!');return;}
+        spinningRef.current=true;setIsSpinning(true);
+        setResultMsg('');setResultClass('');
+        if(!isDemo)setBalance(b=>b-cost);
+        const wheels=[];
+        for(let q=0;q<openQty;q++){
+            const items=[];
+            for(let i=0;i<70;i++){
+                let item=getDrop(activeCase,isDemo,false);
+                if((i===WIN_INDEX-1||i===WIN_INDEX+1)&&Math.random()<0.7)item=goldToken();
+                items.push(item);
+            }
+            const won=getDrop(activeCase,isDemo,false);items[WIN_INDEX]=won;
+            wheels.push({items,wonItem:won});
+        }
+        pendingRef.current={wheels,isGoldPool:false,isDemo};
+        setReelData(wheels);
+        setAnimTrigger(t=>t+1);
+    };
+
+    const totalPrice=activeCase.price*openQty;
+
+    return(
+        <div className="fade-in">
+            <div className="back-link" onClick={()=>showPage('browser')}>&larr; Back to Packs</div>
+            <div className="spinner-section">
+                <div className="opening-header">
+                    <div className="opening-pack"><CSSPack caseData={activeCase}/></div>
+                    <div className="opening-meta">
+                        <h1 className="case-header-title">{activeCase.name}</h1>
+                        <p className="case-header-subtitle">Opening Simulation</p>
+                    </div>
+                </div>
+
+                <div className="spinners-container-stack">
+                    {reelData.map((reel,ri)=>(
+                        <div key={ri+'-'+animTrigger} className={`reel-container${isGoldPhase?' gold-active':''}`} ref={el=>containerRefs.current[ri]=el}>
+                            <div className="center-triangle-top" ref={el=>arrowTopRefs.current[ri]=el}/>
+                            <div className="center-triangle-bottom" ref={el=>arrowBotRefs.current[ri]=el}/>
+                            <div className="reel-track" ref={el=>trackRefs.current[ri]=el}>
+                                {reel.items.map((item,ii)=>{
+                                    const priceText=item.isToken?'Gold Spin':`$${fmt(item.price)}`;
+                                    return(
+                                        <div key={ii} className="spin-item" style={{'--rarity':`var(--${item.rarity})`}}>
+                                            <ItemImage imgKey={item.imgKey}/>
+                                            <div className="spin-item-info">
+                                                <div className="spin-item-name">{item.name}</div>
+                                                <div className="spin-item-price">{priceText}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div id="spin-result-msg" className={resultClass}>{resultMsg}</div>
+
+                <div className="controls-row">
+                    <div className="qty-selector">
+                        <button className="qty-btn" disabled={isSpinning} onClick={()=>changeQty(-1)}>&minus;</button>
+                        <span className="qty-text">x{openQty}</span>
+                        <button className="qty-btn" disabled={isSpinning} onClick={()=>changeQty(1)}>+</button>
+                    </div>
+                    <button className="btn-open" disabled={isSpinning} onClick={()=>roll(false)}>Open for ${fmt(totalPrice)}</button>
+                    <button className="btn-demo" disabled={isSpinning} onClick={()=>roll(true)}>Demo</button>
+                    <button className={`fast-mode-toggle${fastMode?' active':''}`} onClick={()=>setFastMode(f=>!f)} title="Fast Mode">
+                        <svg viewBox="0 0 24 24"><path d="M13 2.05v9h7.45l-11.5 11.5v-9H1.55L13 2.05z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <h2 className="section-title">Pack Contents</h2>
+            <div className="items-grid">
+                {packContents.map(item=>{
+                    const odds=item.absProb<1?item.absProb.toFixed(4)+'%':item.absProb.toFixed(2)+'%';
+                    return(
+                        <div key={item.id} className="grid-item" style={{'--rarity':`var(--${item.rarity})`}}>
+                            <div className="item-odds">{odds}</div>
+                            <ItemImage imgKey={item.imgKey}/>
+                            <div className="item-name">{item.name}</div>
+                            <div className="item-price">${fmt(item.price)}</div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+/* ================================================================
+   APP
+   ================================================================ */
+function App(){
+    const[page,setPage]=useState('browser');
+    const[balance,setBalance]=useState(0);
+    const[inventory,setInventory]=useState([]);
+    const[activeCase,setActiveCase]=useState(null);
+    const[isSpinning,setIsSpinning]=useState(false);
+    const[fastMode,setFastMode]=useState(false);
+    const[openQty,setOpenQty]=useState(1);
+
+    const showPage=useCallback(p=>{if(!isSpinning)setPage(p);},[isSpinning]);
+    const openCaseView=c=>{setActiveCase(c);setOpenQty(1);showPage('opening');};
+
+    return(
+        <>
+            <Navbar page={page} showPage={showPage} balance={balance} addBalance={()=>setBalance(b=>b+100)} invCount={inventory.length}/>
+            <main>
+                {page==='browser'&&<PackBrowser onOpenCase={openCaseView}/>}
+                {page==='opening'&&activeCase&&(
+                    <CaseOpener
+                        activeCase={activeCase} openQty={openQty} setOpenQty={setOpenQty}
+                        fastMode={fastMode} setFastMode={setFastMode}
+                        isSpinning={isSpinning} setIsSpinning={setIsSpinning}
+                        balance={balance} setBalance={setBalance}
+                        inventory={inventory} setInventory={setInventory}
+                        showPage={showPage}
+                    />
+                )}
+                {page==='inventory'&&(
+                    <Inventory inventory={inventory} setInventory={setInventory} balance={balance} setBalance={setBalance}/>
+                )}
+            </main>
+        </>
+    );
+}
+
+/* ================================================================
+   MOUNT
+   ================================================================ */
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+initStarfield();
+</script>
+</body>
+</html>

@@ -1,0 +1,3118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoUnbox - Premium Case Opening</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-main: #0a0d14;
+            --bg-nav: #0f1219;
+            --bg-card: #151a23;
+            --bg-card-hover: #1b222d;
+
+            --text-main: #ffffff;
+            --text-muted: #8b92a5;
+            --border-light: rgba(255, 255, 255, 0.05);
+
+            --btn-open-bg: #4ade80;
+            --btn-open-text: #ffffff;
+            --btn-open-hover: #22c55e;
+
+            --btn-demo-bg: #374151;
+            --btn-demo-text: #e2e8f0;
+            --btn-demo-hover: #4b5563;
+
+            --common: #9ca3af;
+            --rare: #3b82f6;
+            --epic: #a855f7;
+            --legendary: #ffd900;
+            --gold-spin: #facc15;
+
+            /* single source of truth for reel item width (JS reads this) */
+            --reel-item-width: 220px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+        body {
+            color: var(--text-main);
+            overflow-x: hidden;
+            font-family: 'Montserrat', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: transparent;
+        }
+
+        /* --- DYNAMIC STARFIELD CANVAS --- */
+        #starfield {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            background-color: #06080e;
+        }
+
+        /* --- NAVBAR --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 2.5rem; background: var(--bg-nav);
+            border-bottom: 1px solid var(--border-light);
+            position: sticky; top: 0; z-index: 1000;
+        }
+        .nav-left { display: flex; align-items: center; gap: 3rem; }
+        .logo {
+            font-size: 1.3rem; font-weight: 800; color: var(--text-main);
+            display: flex; align-items: center; gap: 0.6rem; cursor: pointer; letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 2rem; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); }
+        .nav-links a { cursor: pointer; transition: 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--text-main); }
+
+        .nav-right { display: flex; align-items: center; gap: 0.75rem; }
+
+        .cart-btn {
+            background: #2a2d33; color: white; padding: 0.5rem 1rem;
+            border-radius: 6px; font-size: 0.9rem; font-weight: 600;
+            display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.05); transition: 0.2s;
+        }
+        .cart-btn:hover { background: #33373e; }
+        .cart-badge { background: white; color: black; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; }
+
+        .wallet-btn {
+            background: #3b82f6;
+            color: white; padding: 0.6rem 1.2rem;
+            border-radius: 6px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; border: none; transition: 0.2s;
+        }
+        .wallet-btn:hover { background: #2563eb; }
+        .profile-btn { width: 34px; height: 34px; border-radius: 50%; background: #2a2d33; display:flex; align-items:center; justify-content:center; }
+
+        /* --- LAYOUT --- */
+        main { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; position: relative; z-index: 10; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .back-link {
+            color: var(--text-muted); font-size: 0.9rem; cursor: pointer;
+            margin-bottom: 2rem; display: inline-block; font-weight: 600;
+        }
+        .back-link:hover { color: var(--text-main); }
+
+        /* --- PURE CSS PACK DESIGN --- */
+        .css-pack {
+            width: 160px;
+            height: 230px;
+            background: linear-gradient(135deg, var(--c1), var(--c2));
+            border-radius: 4px;
+            position: relative;
+            margin: 0 auto 0.5rem auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, filter 0.2s;
+            overflow: hidden;
+        }
+        .css-pack::before, .css-pack::after {
+            content: ''; position: absolute; left: 0; width: 100%; height: 12px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+            z-index: 5;
+        }
+        .css-pack::before { top: 0; border-bottom: 1px solid rgba(0,0,0,0.2); }
+        .css-pack::after { bottom: 0; border-top: 1px solid rgba(0,0,0,0.2); }
+
+        .pack-notch-left, .pack-notch-right {
+            position: absolute; top: 25px; width: 4px; height: 4px;
+            background: #04060a; border-radius: 10px; z-index: 10;
+        }
+        .pack-notch-left { left: -2px; }
+        .pack-notch-right { right: -2px; }
+
+        .pack-items-container {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; height: 100px; display: flex; justify-content: center; align-items: center;
+            z-index: 5; pointer-events: none;
+        }
+        .pack-item-img {
+            width: 65px; height: 65px; object-fit: contain; position: absolute;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.6));
+        }
+        .pack-item-img:nth-child(1) { transform: rotate(-15deg) translateX(-15px); z-index: 1; }
+        .pack-item-img:nth-child(2) { transform: rotate(10deg) translateX(15px); z-index: 2; width: 75px; height: 75px;}
+
+        .css-pack-inner {
+            margin: 12px 10px;
+            flex: 1;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(0,0,0,0.2) 100%);
+            border-radius: 4px;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.4), inset 0 -5px 15px rgba(0,0,0,0.4);
+            display: flex; justify-content: center; align-items: flex-start;
+            padding-top: 20px; position: relative; z-index: 2;
+        }
+        .css-pack-name {
+            position: absolute; bottom: 20px; left: 0; width: 100%;
+            color: white; font-weight: 800; font-size: 0.95rem; text-align: center; text-transform: uppercase;
+            line-height: 1.1; text-shadow: 0 2px 5px rgba(0,0,0,0.8); z-index: 20; padding: 0 5px;
+        }
+
+        /* --- SPINNER SECTION (LEFT-ALIGNED) --- */
+        .spinner-section { text-align: left; margin-bottom: 4rem; padding-top: 0; }
+
+        .opening-header { display: flex; align-items: flex-end; gap: 1.25rem; margin: 0.25rem 0 2.25rem; }
+        .opening-pack { width: 99px; height: 142px; flex-shrink: 0; }
+        .opening-pack .css-pack { transform: scale(0.62); transform-origin: top left; margin: 0; }
+        .opening-meta { display: flex; flex-direction: column; padding-bottom: 6px; }
+
+        .case-header-title { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: var(--text-main); }
+        .case-header-subtitle { font-size: 0.95rem; color: var(--text-muted); font-weight: 600; margin: 0.3rem 0 0; }
+
+        .spinners-container-stack {
+            display: flex; flex-direction: column; gap: 1rem; margin: 2rem 0; width: 100%;
+            min-height: 200px;
+        }
+
+        .reel-container {
+            position: relative; width: 100%; height: 260px; overflow: hidden;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%);
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.02);
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        }
+
+        /* small top/bottom arrows mark the stopping point (no center line) */
+        .center-triangle-top, .center-triangle-bottom {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; z-index: 200; transition: opacity 0.2s; opacity: 0;
+        }
+        .center-triangle-top { top: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 11px solid var(--gold-spin); }
+        .center-triangle-bottom { bottom: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 11px solid var(--gold-spin); }
+
+        .reel-track { display: flex; height: 100%; width: max-content; align-items: center; }
+
+        /* width MUST match JS itemWidth (var --reel-item-width) so the winner lands centered */
+        .spin-item {
+            width: var(--reel-item-width); height: 100%; flex-shrink: 0; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; position: relative;
+            transition: transform 0.15s ease-out, opacity 0.3s ease; z-index: 1;
+        }
+        .spin-item img {
+            width: 60%; height: 110px; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); z-index: 10; margin-bottom: 34px; position: relative;
+        }
+        .spin-item::before {
+            content: ''; position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+            width: 90px; height: 90px; background: var(--rarity); filter: blur(28px);
+            opacity: 0; z-index: 0; border-radius: 50%; transition: all 0.15s ease-out; pointer-events: none;
+        }
+        .spin-item.active { transform: scale(1.08); z-index: 50; }
+        .spin-item.active::before { opacity: 0.55; filter: blur(30px); width: 110px; height: 110px;}
+        /* WINNER: stays centered + keeps its glow once the reel stops */
+        .spin-item.winner { transform: scale(1.15); z-index: 60; }
+        .spin-item.winner::before { opacity: 1; transform: translate(-50%, -50%); width: 130px; height: 130px; filter: blur(34px); }
+
+        .spin-item-info {
+            position: absolute; bottom: 34px; width: 100%; text-align: center;
+            opacity: 0; transform: translateY(8px); transition: all 0.3s ease; z-index: 20;
+        }
+        .spin-item.winner .spin-item-info { opacity: 1; transform: translateY(0); }
+        .spin-item-name { font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
+        .spin-item-price { font-size: 1.1rem; font-weight: 800; color: var(--gold-spin); }
+
+        /* --- CONTROLS --- */
+        .controls-row { display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 3rem;}
+
+        .qty-selector {
+            display: flex; align-items: center; background: #262a33; border-radius: 6px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05); height: 44px; margin-right: 1rem;
+        }
+        .qty-btn {
+            background: transparent; border: none; color: var(--text-muted); width: 36px; height: 100%;
+            font-size: 1.2rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+        }
+        .qty-btn:hover { background: rgba(255,255,255,0.1); color: white;}
+        .qty-text { color: white; padding: 0 12px; font-weight: 700; font-size: 0.95rem; min-width: 40px; text-align: center;}
+
+        .btn-open {
+            background: var(--btn-open-bg); color: var(--btn-open-text); font-weight: 700; border: none;
+            padding: 0 2.2rem; height: 44px; border-radius: 6px; cursor: pointer; font-size: 1.05rem; transition: 0.2s;
+        }
+        .btn-open:hover:not(:disabled) { background: var(--btn-open-hover); }
+        .btn-open:disabled { filter: brightness(0.6); cursor: not-allowed; }
+
+        .btn-demo {
+            background: var(--btn-demo-bg); color: var(--btn-demo-text); font-weight: 700;
+            border: none; padding: 0 1.8rem; height: 44px; border-radius: 6px; cursor: pointer; font-size: 1.05rem; transition: 0.2s;
+        }
+        .btn-demo:hover:not(:disabled) { background: var(--btn-demo-hover); color: white; }
+        .btn-demo:disabled { filter: brightness(0.6); cursor: not-allowed; }
+
+        .fast-mode-toggle {
+            background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+            padding: 0.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; margin-left: 1rem;
+        }
+        .fast-mode-toggle.active { color: var(--gold-spin); background: rgba(250, 204, 21, 0.1); }
+        .fast-mode-toggle svg { width: 20px; height: 20px; fill: currentColor; }
+
+        #spin-result-msg { text-align: center; margin-bottom: 1rem; font-weight: 800; min-height: 28px; font-size: 1.2rem;}
+
+        /* --- PACK CONTENTS GRID --- */
+        .section-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1.5rem; color: var(--text-main); }
+
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 3rem;}
+        .grid-item {
+            background: var(--bg-card); border-radius: 8px; padding: 1.5rem 1rem;
+            display: flex; flex-direction: column; align-items: center; position: relative;
+            border: 1px solid var(--border-light); transition: 0.2s; cursor: default;
+            overflow: hidden;
+        }
+        .grid-item:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+
+        /* inventory items: hover = red glow + prominent "CLICK TO SELL" */
+        .grid-item.sellable { cursor: pointer; }
+        .grid-item.sellable:hover { transform: translateY(-4px); border-color: #ef4444; box-shadow: 0 0 18px rgba(239,68,68,0.35); background: rgba(239,68,68,0.06); }
+        .grid-item.sellable .item-odds { transition: color .2s, font-size .2s, letter-spacing .2s; }
+        .grid-item.sellable .item-odds::after { content: 'SELL ITEM'; }
+        .grid-item.sellable:hover .item-odds { color: #ef4444 !important; font-size: 0.95rem; letter-spacing: 0.5px; }
+        .grid-item.sellable:hover .item-odds::after { content: 'CLICK TO SELL'; }
+
+        .grid-item::before {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80px; height: 80px; background: var(--rarity); filter: blur(30px);
+            opacity: 0.15; z-index: 1; pointer-events: none;
+        }
+
+        .item-odds { font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 1rem; text-align: center; width: 100%; z-index: 5;}
+        .grid-item img { width: 90px; height: 90px; object-fit: contain; margin-bottom: 1rem; z-index: 2; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
+        .item-name { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; margin-bottom: 0.2rem; z-index: 5;}
+        .item-price { font-size: 0.95rem; font-weight: 800; color: var(--text-main); z-index: 5;}
+
+        /* --- PACKS BROWSER --- */
+        .browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+        .browse-card {
+            background: transparent; border: none; padding: 1.5rem;
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; cursor: pointer; transition: 0.2s;
+        }
+        .browse-card:hover .css-pack { transform: translateY(-8px) scale(1.02); filter: brightness(1.1); }
+        .browse-card .price { color: var(--text-main); font-weight: 700; font-size: 1.1rem; margin-top: 0.5rem;}
+
+        .fallback-red { width: 80%; height: 80%; border: 1px dashed #ef4444; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 0.75rem; font-weight: 600; text-align: center; word-break: break-all; border-radius: 8px; z-index: 10; position: relative;}
+
+        /* --- LOGIN PAGE --- */
+        #login-page {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; background: rgba(6,8,14,0.97);
+        }
+        .login-box {
+            background: #11151e; border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px; padding: 2.5rem 2rem; width: 380px; max-width: 92vw;
+        }
+        .login-logo {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.6rem; font-size: 1.5rem; font-weight: 800;
+            margin-bottom: 2rem; color: white;
+        }
+        .login-tabs {
+            display: flex; margin-bottom: 1.5rem;
+            border-radius: 8px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+        .login-tab {
+            flex: 1; padding: 0.65rem; text-align: center;
+            background: transparent; border: none; color: #6b7280;
+            font-weight: 700; font-size: 0.9rem; cursor: pointer;
+            transition: 0.2s; font-family: inherit;
+        }
+        .login-tab.active { background: rgba(255,255,255,0.07); color: white; }
+        .login-input {
+            width: 100%; padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; color: white; font-size: 0.95rem; font-family: inherit;
+            margin-bottom: 0.75rem; outline: none; transition: border-color 0.2s;
+        }
+        .login-input:focus { border-color: rgba(255,255,255,0.2); }
+        .login-input::placeholder { color: #444; }
+        .login-error { color: #ef4444; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; min-height: 1.2em; }
+        .login-submit {
+            width: 100%; padding: 0.75rem; background: #4ade80; color: white;
+            border: none; border-radius: 8px; font-weight: 700; font-size: 1rem;
+            cursor: pointer; transition: 0.2s; font-family: inherit;
+        }
+        .login-submit:hover { background: #22c55e; }
+        .login-note { text-align: center; margin-top: 1.2rem; color: #444; font-size: 0.72rem; }
+
+        /* --- AVATARS --- */
+        .avatar{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center;text-transform:uppercase;line-height:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);}
+        .avatar img{width:100%;height:100%;object-fit:cover;}
+        .nav-avatar{width:34px;height:34px;font-size:0.95rem;cursor:pointer;}
+        .battle-card-creator .avatar{width:26px;height:26px;font-size:0.78rem;}
+        .cf-card .avatar{width:24px;height:24px;font-size:0.72rem;}
+        .battle-player .avatar{width:42px;height:42px;font-size:1.1rem;}
+        .avatar-upload-wrap{position:relative;display:inline-flex;align-items:center;gap:0.4rem;}
+        .avatar-upload-label{font-size:0.72rem;font-weight:700;color:var(--text-muted);cursor:pointer;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:0.25rem 0.55rem;transition:.2s;}
+        .avatar-upload-label:hover{color:#fff;border-color:rgba(255,255,255,0.25);}
+
+        /* --- NEW BATTLE ARENA --- */
+        .battle-topbar{display:flex;align-items:center;gap:1rem;background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+        .bt-mode{padding:0.2rem 0.6rem;border-radius:5px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;flex-shrink:0;}
+        .bt-cases{display:flex;gap:0.3rem;align-items:center;flex:1;min-width:0;overflow-x:auto;padding-bottom:2px;}
+        .bt-case-thumb{width:44px;height:63px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;transition:.2s;opacity:0.4;overflow:hidden;}
+        .bt-case-thumb img{width:26px;height:26px;object-fit:contain;}
+        .bt-case-thumb.done{opacity:0.7;}
+        .bt-case-thumb.current{opacity:1;border-color:var(--gold-spin);box-shadow:0 0 12px rgba(250,204,21,0.25);}
+        .bt-info{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;text-align:right;}
+        .bt-round{font-size:0.82rem;font-weight:800;color:var(--text-main);}
+        .bt-casename{font-size:0.74rem;color:var(--text-muted);font-weight:600;}
+        .bt-price{font-size:0.74rem;color:var(--gold-spin);font-weight:700;}
+        .bt-cost{font-size:0.72rem;color:var(--text-muted);font-weight:600;}
+
+        .battle-arena{position:relative;display:grid;gap:0;background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;overflow:hidden;margin-bottom:1.25rem;}
+        .arena-col{position:relative;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.06);transition:box-shadow .4s,background .4s;}
+        .arena-col:last-child{border-right:none;}
+        .arena-col.is-winner{box-shadow:inset 0 0 0 2px var(--gold-spin),inset 0 0 40px rgba(250,204,21,0.12);background:rgba(250,204,21,0.03);}
+        .arena-stage{height:260px;position:relative;overflow:hidden;
+            mask-image:linear-gradient(to bottom,transparent,black 15%,black 85%,transparent);-webkit-mask-image:linear-gradient(to bottom,transparent,black 15%,black 85%,transparent);}
+        .arena-reel-track{display:flex;flex-direction:column;width:100%;}
+        .arena-spin-item{height:90px;flex-shrink:0;display:flex;justify-content:center;align-items:center;gap:0.6rem;padding:0 0.75rem;position:relative;transition:transform .12s ease-out,opacity .3s ease;z-index:1;}
+        .arena-spin-item img{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5));z-index:10;flex-shrink:0;}
+        .arena-spin-item::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;background:var(--rarity);filter:blur(22px);opacity:0;z-index:0;border-radius:50%;transition:all .15s ease-out;pointer-events:none;}
+        /* name/price hidden while rolling; only revealed on the winner (like single-pack .spin-item-info) */
+        .arena-spin-item .arena-spin-item-info{display:none;flex-direction:column;opacity:0;transform:translateY(6px);transition:all .3s ease;text-align:left;z-index:10;min-width:0;}
+        .arena-spin-item.winner .arena-spin-item-info{display:flex;opacity:1;transform:translateY(0);}
+        .arena-spin-item.active{transform:scale(1.05);z-index:50;}
+        .arena-spin-item.active::before{opacity:0.4;width:80px;height:80px;}
+        .arena-spin-item.winner{transform:scale(1.1);z-index:60;}
+        .arena-spin-item.winner::before{opacity:0.8;width:100px;height:100px;filter:blur(28px);}
+        .arena-spin-item-name{font-size:0.78rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .arena-spin-item-price{font-size:0.88rem;font-weight:800;color:var(--gold-spin);}
+        .arena-arrow-l,.arena-arrow-r{position:absolute;top:50%;transform:translateY(-50%);z-index:200;width:0;height:0;transition:opacity .2s;opacity:0;}
+        .arena-arrow-l{left:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--gold-spin);}
+        .arena-arrow-r{right:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-right:9px solid var(--gold-spin);}
+        .arena-winner-result{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:0.5rem;padding:1rem;text-align:center;animation:fadeInUp .5s ease;}
+        .arena-item-fallback{width:70px;height:70px;border-radius:10px;background:#1a1f2a;z-index:2;}
+        .arena-playerbar{display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.85rem;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.2);}
+        .arena-pb-avatar{width:32px;height:32px;font-size:0.9rem;}
+        .arena-pb-meta{flex:1;min-width:0;}
+        .arena-pb-name{font-size:0.82rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .arena-pb-name .bot-tag{font-size:0.62rem;}
+        .arena-pb-total{font-size:0.95rem;font-weight:800;color:#4ade80;white-space:nowrap;}
+
+        /* --- HISTORY GRID --- */
+        .battle-history{display:grid;gap:0.75rem;margin-bottom:1.25rem;}
+        .history-col{background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:0.6rem;}
+        .history-col-head{font-size:0.74rem;font-weight:700;color:var(--text-muted);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.4rem;}
+        .history-col-head .avatar{width:20px;height:20px;font-size:0.62rem;}
+        .history-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:0.4rem;}
+        .history-cell{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:7px;padding:0.35rem 0.2rem;text-align:center;position:relative;overflow:hidden;animation:histPop .35s ease-out;}
+        .history-cell::before{content:'';position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:var(--rarity);filter:blur(16px);opacity:0.18;z-index:0;}
+        .history-cell img{width:34px;height:34px;object-fit:contain;position:relative;z-index:1;}
+        .history-cell-fallback{width:34px;height:34px;border-radius:6px;background:#1a1f2a;margin:0 auto;}
+        .history-cell-name{font-size:0.58rem;font-weight:600;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0.15rem;position:relative;z-index:1;}
+        .history-cell-price{font-size:0.62rem;font-weight:800;color:var(--text-main);position:relative;z-index:1;}
+        @keyframes histPop{from{transform:scale(0.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+        /* --- WINNER OVERLAY --- */
+        .battle-win-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;z-index:1500;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);animation:winFade .3s ease-out;}
+        .battle-win-box{text-align:center;padding:2.5rem 3rem;background:rgba(15,18,25,0.9);border:2px solid var(--gold-spin);border-radius:18px;box-shadow:0 0 60px rgba(250,204,21,0.25);animation:winPop .45s cubic-bezier(0.34,1.56,0.64,1);}
+        .battle-win-box .avatar{width:90px;height:90px;font-size:2.4rem;margin:0 auto 1.1rem;box-shadow:0 0 30px rgba(250,204,21,0.4),inset 0 0 0 2px rgba(255,255,255,0.15);}
+        .battle-win-label{font-size:2rem;font-weight:900;color:var(--gold-spin);letter-spacing:1px;margin-bottom:0.4rem;text-shadow:0 0 20px rgba(250,204,21,0.4);}
+        .battle-win-name{font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:0.3rem;}
+        .battle-win-value{font-size:1rem;font-weight:700;color:var(--text-muted);margin-bottom:1.4rem;}
+        .battle-win-claim{color:#4ade80;font-weight:700;font-size:0.9rem;margin-bottom:1rem;}
+        .battle-win-close{background:var(--btn-demo-bg);color:#fff;border:none;padding:0.6rem 1.6rem;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.95rem;transition:.2s;}
+        .battle-win-close:hover{background:var(--btn-demo-hover);}
+        @keyframes winFade{from{opacity:0;}to{opacity:1;}}
+        @keyframes winPop{from{transform:scale(0.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+        /* --- CASE SELECTOR MODAL --- */
+        .case-modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:1600;display:flex;align-items:center;justify-content:center;}
+        .case-modal{background:#11151e;border:1px solid rgba(255,255,255,0.08);border-radius:14px;width:620px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+        .case-modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;}
+        .case-modal-header h3{font-size:1.1rem;font-weight:800;color:var(--text-main);}
+        .case-modal-close{background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;padding:0.25rem;line-height:1;}
+        .case-modal-body{padding:1rem 1.5rem;overflow-y:auto;flex:1;}
+        .case-modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;}
+        .case-modal-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:0.75rem 0.5rem;cursor:pointer;transition:.2s;text-align:center;display:flex;flex-direction:column;align-items:center;}
+        .case-modal-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);transform:translateY(-2px);}
+        .case-modal-card:hover .css-pack{filter:brightness(1.1);}
+        .case-modal-card .cmc-pack{position:relative;width:124px;height:180px;overflow:hidden;margin-bottom:0.4rem;}
+        .case-modal-card .cmc-pack .css-pack{position:absolute;top:0;left:0;transform:scale(0.775);transform-origin:top left;margin:0;}
+        .case-modal-card .cmc-name{font-weight:700;font-size:0.82rem;color:var(--text-main);margin-bottom:0.15rem;}
+        .case-modal-card .cmc-price{font-size:0.78rem;color:var(--gold-spin);font-weight:700;}
+        .selected-pack-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:0.5rem;text-align:center;position:relative;cursor:pointer;transition:.2s;width:100px;flex-shrink:0;}
+        .selected-pack-card:hover{border-color:#ef4444;}
+        .selected-pack-card .sp-imgs{height:40px;display:flex;align-items:center;justify-content:center;margin-bottom:0.25rem;}
+        .selected-pack-card .sp-imgs img{width:28px;height:28px;object-fit:contain;}
+        .selected-pack-card .sp-name{font-size:0.68rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .selected-pack-card .sp-price{font-size:0.65rem;color:var(--text-muted);}
+        .selected-pack-card .sp-remove{position:absolute;top:2px;right:4px;color:#ef4444;font-size:0.9rem;font-weight:800;line-height:1;cursor:pointer;}
+
+        /* --- ADD-PACKS / CSS PACK PREVIEW (create battle + lobby) --- */
+        .pack-pick-mini{position:relative;width:72px;height:104px;flex-shrink:0;overflow:hidden;}
+        .pack-pick-mini .css-pack{transform:scale(0.45);transform-origin:top left;margin:0;}
+        .selected-pack-css{position:relative;display:flex;flex-direction:column;align-items:center;flex-shrink:0;cursor:pointer;transition:.2s;}
+        .selected-pack-css:hover{transform:translateY(-3px);}
+        .selected-pack-css .spc-price{font-size:0.72rem;font-weight:700;color:var(--gold-spin);margin-top:-0.25rem;}
+        .selected-pack-css .spc-remove{position:absolute;top:-4px;right:6px;z-index:30;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.95rem;font-weight:800;line-height:20px;text-align:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.4);transition:.2s;}
+        .selected-pack-css .spc-remove:hover{background:#dc2626;transform:scale(1.1);}
+        .spc-pack{position:relative;width:104px;height:150px;overflow:hidden;}
+        .spc-pack .css-pack{transform:scale(0.65);transform-origin:top left;margin:0;}
+        .add-packs-box{width:104px;height:150px;border:2px dashed rgba(255,255,255,0.18);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;cursor:pointer;color:var(--text-muted);transition:.2s;flex-shrink:0;background:rgba(255,255,255,0.02);}
+        .add-packs-box:hover{border-color:var(--gold-spin);color:var(--text-main);background:rgba(250,204,21,0.05);}
+        .add-packs-box .apb-plus{font-size:2.2rem;font-weight:300;line-height:1;}
+        .add-packs-box .apb-text{font-size:0.82rem;font-weight:700;}
+        .selected-packs-wrap{display:flex;gap:0.85rem;flex-wrap:wrap;align-items:flex-start;min-height:150px;}
+        .bt-case-thumb.has-pack{overflow:hidden;}
+        .bt-case-thumb .css-pack{position:absolute;top:0;left:0;transform:scale(0.275);transform-origin:top left;margin:0;box-shadow:none;}
+        .bt-case-thumb .css-pack-name{font-size:0.95rem;}
+
+        /* small static (non-animated) reel preview in the waiting room */
+        .reel-preview{height:200px;overflow:hidden;position:relative;width:100%;
+            mask-image:linear-gradient(to bottom,transparent,black 18%,black 82%,transparent);-webkit-mask-image:linear-gradient(to bottom,transparent,black 18%,black 82%,transparent);}
+        .reel-preview .arena-reel-track{position:absolute;left:0;width:100%;}
+
+        /* --- COINFLIP --- */
+        .cf-list{display:flex;flex-direction:column;gap:0.75rem;}
+        .cf-card{background:var(--bg-card);border-radius:10px;padding:1rem 1.25rem;border:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;}
+        .cf-create-row{display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--border-light);}
+        .cf-amounts{display:flex;gap:0.4rem;flex-wrap:wrap;}
+        .cf-amt{padding:0.4rem 0.8rem;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--text-muted);font-weight:700;font-size:0.85rem;cursor:pointer;transition:.2s;font-family:inherit;}
+        .cf-amt.active{background:rgba(255,255,255,0.08);color:white;border-color:rgba(255,255,255,0.15);}
+        .cf-sides{display:flex;gap:0.75rem;}
+        .cf-side-btn{display:flex;flex-direction:column;align-items:center;gap:0.4rem;cursor:pointer;transition:.2s;padding:0.6rem 1rem;border-radius:10px;border:2px solid transparent;background:rgba(255,255,255,0.02);}
+        .cf-side-btn:hover{background:rgba(255,255,255,0.05);}
+        .cf-side-btn.active{border-color:var(--gold-spin);background:rgba(250,204,21,0.06);}
+        .cf-side-btn .cf-preview-coin{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;transition:transform .2s;}
+        .cf-side-btn:hover .cf-preview-coin{transform:scale(1.08);}
+        .cf-side-btn .cf-side-label{font-size:0.78rem;font-weight:700;color:var(--text-muted);}
+        .cf-side-btn.active .cf-side-label{color:var(--gold-spin);}
+
+        .cf-coin-heads{background:linear-gradient(135deg,#ef4444,#b91c1c);border:3px solid #fca5a5;color:#fef2f2;}
+        .cf-coin-tails{background:linear-gradient(135deg,#3b82f6,#1d4ed8);border:3px solid #93c5fd;color:#eff6ff;}
+
+        .cf-coin-area{text-align:center;padding:2rem 0;}
+        .cf-coin{width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;transition:transform 0.15s ease,box-shadow 0.3s;}
+        .cf-result{font-size:1.3rem;font-weight:800;margin-top:1rem;}
+
+        .cf-flip-zone{position:relative;width:200px;height:300px;margin:0 auto;overflow:visible;}
+        .cf-flip-coin{position:absolute;left:50%;width:90px;height:90px;margin-left:-45px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:900;z-index:5;pointer-events:none;}
+        .cf-flip-shadow{position:absolute;left:50%;bottom:20px;width:60px;height:12px;margin-left:-30px;border-radius:50%;background:rgba(255,255,255,0.1);filter:blur(6px);pointer-events:none;z-index:1;}
+        .cf-flip-result{position:absolute;bottom:-10px;width:100%;text-align:center;font-size:1.6rem;font-weight:900;opacity:0;transform:scale(0.5);transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:10;}
+
+        /* --- CASE BATTLES --- */
+        .battle-list{display:flex;flex-direction:column;gap:0.75rem;}
+        .battle-empty{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-weight:600;}
+        .battle-card{background:var(--bg-card);border-radius:10px;padding:1.2rem 1.25rem;border:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;}
+        .battle-card-creator{font-weight:700;color:var(--text-main);margin-bottom:0.25rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;}
+        .battle-card-details{font-size:0.82rem;color:var(--text-muted);font-weight:500;}
+        .battle-card-right{display:flex;align-items:center;gap:0.5rem;}
+        .battle-mode-badge{padding:0.15rem 0.55rem;border-radius:4px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+        .mode-normal{background:rgba(74,222,128,0.15);color:#4ade80;}
+        .mode-crazy{background:rgba(239,68,68,0.15);color:#ef4444;}
+        .mode-team{background:rgba(59,130,246,0.15);color:#3b82f6;}
+        .mode-terminal{background:rgba(168,85,247,0.15);color:#a855f7;}
+
+        .create-section{margin-bottom:1.5rem;}
+        .create-label{font-weight:700;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;}
+        .create-options{display:flex;gap:0.5rem;flex-wrap:wrap;}
+        .create-opt{padding:0.5rem 1rem;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--text-muted);font-weight:700;font-size:0.88rem;cursor:pointer;transition:.2s;font-family:inherit;}
+        .create-opt.active{background:rgba(255,255,255,0.08);color:white;border-color:rgba(255,255,255,0.15);}
+        .create-toggle{display:flex;align-items:center;gap:0.75rem;cursor:pointer;font-weight:600;color:var(--text-muted);font-size:0.9rem;}
+        .toggle-switch{width:40px;height:22px;background:rgba(255,255,255,0.1);border-radius:11px;position:relative;transition:.2s;flex-shrink:0;}
+        .toggle-switch.on{background:#4ade80;}
+        .toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:white;transition:.2s;}
+        .toggle-switch.on::after{left:20px;}
+        .selected-cases{display:flex;gap:0.6rem;flex-wrap:wrap;min-height:48px;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border-radius:8px;border:1px dashed rgba(255,255,255,0.08);margin-bottom:1rem;align-items:center;}
+        .selected-case-chip{background:rgba(255,255,255,0.06);border-radius:6px;padding:0.35rem 0.7rem;display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;font-weight:600;color:var(--text-main);}
+        .selected-case-chip .remove-case{cursor:pointer;color:#ef4444;font-size:1.1rem;line-height:1;}
+        .add-cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem;}
+        .add-case-btn{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:0.7rem;text-align:center;cursor:pointer;transition:.2s;}
+        .add-case-btn:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1);}
+        .add-case-btn .acb-name{font-weight:700;font-size:0.8rem;color:var(--text-main);margin-bottom:0.15rem;}
+        .add-case-btn .acb-price{font-size:0.75rem;color:var(--text-muted);}
+        .create-total{font-size:1.1rem;font-weight:800;color:var(--gold-spin);margin:1rem 0;}
+
+        .battle-round-bar{background:rgba(255,255,255,0.04);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem;text-align:center;font-weight:700;font-size:0.95rem;color:var(--text-main);}
+        .battle-players{display:grid;gap:0.75rem;margin-bottom:1.25rem;}
+        .battle-players.p2{grid-template-columns:1fr 1fr;}
+        .battle-players.p3{grid-template-columns:1fr 1fr 1fr;}
+        .battle-players.p4{grid-template-columns:1fr 1fr 1fr 1fr;}
+        .battle-players.p5{grid-template-columns:1fr 1fr 1fr 1fr 1fr;}
+        .battle-players.p6{grid-template-columns:1fr 1fr 1fr;}
+        .battle-player{background:var(--bg-card);border-radius:10px;border:1px solid var(--border-light);padding:1rem 0.75rem;text-align:center;transition:.3s;}
+        .battle-player.is-winner{border-color:var(--gold-spin);box-shadow:0 0 25px rgba(250,204,21,0.12);}
+        .battle-player-name{font-weight:700;font-size:0.88rem;margin-bottom:0.6rem;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .bot-tag{font-size:0.68rem;color:var(--text-muted);font-weight:600;}
+        .battle-slot{min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:0.5rem;}
+        .battle-slot img{width:65px;height:65px;object-fit:contain;margin-bottom:0.25rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.4));}
+        .battle-slot-name{font-size:0.78rem;font-weight:600;color:var(--text-main);margin-top:0.2rem;}
+        .battle-slot-price{font-size:0.88rem;font-weight:800;}
+        .battle-player-total{font-size:0.95rem;font-weight:800;color:var(--text-main);padding-top:0.6rem;border-top:1px solid var(--border-light);}
+        .battle-countdown{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:300;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);border-radius:10px;}
+        .countdown-number{font-size:7rem;font-weight:900;color:white;animation:countPop .45s ease-out;}
+        @keyframes countPop{from{transform:scale(2.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+        @media(max-width:768px){
+            .battle-players.p3,.battle-players.p4{grid-template-columns:1fr 1fr;}
+            .battle-card{flex-direction:column;align-items:flex-start;}
+            .add-cases-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+            .arena-stage{height:220px;}
+            .arena-spin-item{height:75px;}
+            .arena-spin-item img{width:48px;height:48px;}
+        }
+        @media(max-width:420px){
+            .battle-players.p2,.battle-players.p3,.battle-players.p4{grid-template-columns:1fr 1fr;}
+            .battle-slot img{width:50px;height:50px;}
+            .battle-slot{min-height:90px;}
+            .countdown-number{font-size:5rem;}
+            .arena-stage{height:180px;}
+            .arena-spin-item{height:65px;}
+            .arena-spin-item img{width:40px;height:40px;}
+            .battle-win-box{padding:1.8rem;}
+        }
+
+        /* --- ADMIN PANEL --- */
+        .admin-panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .admin-stats {
+            display: flex; gap: 1rem; flex-wrap: wrap;
+        }
+        .admin-stat {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px; padding: 0.75rem 1.25rem; text-align: center; min-width: 120px;
+        }
+        .admin-stat-value { font-size: 1.4rem; font-weight: 800; color: var(--text-main); }
+        .admin-stat-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.2rem; }
+        .admin-search {
+            width: 100%; padding: 0.65rem 1rem; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 8px;
+            color: white; font-size: 0.9rem; font-family: inherit; outline: none;
+            margin-bottom: 1rem; transition: border-color 0.2s;
+        }
+        .admin-search:focus { border-color: rgba(255,255,255,0.15); }
+        .admin-search::placeholder { color: #444; }
+        .admin-table {
+            width: 100%; border-collapse: collapse; font-size: 0.88rem;
+        }
+        .admin-table th {
+            text-align: left; padding: 0.7rem 0.75rem; color: var(--text-muted);
+            font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .admin-table td {
+            padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+            vertical-align: middle;
+        }
+        .admin-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .admin-table .user-cell { font-weight: 700; color: var(--text-main); }
+        .admin-table .bal-cell { font-weight: 700; color: var(--gold-spin); }
+        .admin-table .items-cell { color: var(--text-muted); font-weight: 600; }
+        .admin-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .admin-btn {
+            padding: 0.3rem 0.6rem; border-radius: 5px; border: none;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: 0.15s; white-space: nowrap;
+        }
+        .admin-btn-give { background: rgba(74,222,128,0.15); color: #4ade80; }
+        .admin-btn-give:hover { background: rgba(74,222,128,0.25); }
+        .admin-btn-take { background: rgba(251,191,36,0.15); color: #fbbf24; }
+        .admin-btn-take:hover { background: rgba(251,191,36,0.25); }
+        .admin-btn-ban { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .admin-btn-ban:hover { background: rgba(239,68,68,0.25); }
+        .admin-btn-unban { background: rgba(59,130,246,0.15); color: #3b82f6; }
+        .admin-btn-unban:hover { background: rgba(59,130,246,0.25); }
+        .status-active { color: #4ade80; font-weight: 700; }
+        .status-banned { color: #ef4444; font-weight: 700; }
+        .admin-nav-link { color: #f59e0b !important; }
+
+        @media (max-width: 640px) {
+            .admin-table { font-size: 0.78rem; }
+            .admin-table th, .admin-table td { padding: 0.5rem 0.4rem; }
+            .admin-btn { font-size: 0.7rem; padding: 0.25rem 0.45rem; }
+            .admin-stat { min-width: 90px; padding: 0.5rem 0.75rem; }
+            .admin-stat-value { font-size: 1.1rem; }
+        }
+
+        /* --- NAV AUTH ELEMENTS --- */
+        .user-info { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+        .admin-badge { background: #f59e0b; color: #000; padding: 0.12rem 0.45rem; border-radius: 4px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.5px; }
+        .logout-btn {
+            background: rgba(239,68,68,0.12); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.18); padding: 0.4rem 0.8rem;
+            border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: 0.2s; font-family: inherit;
+        }
+        .logout-btn:hover { background: rgba(239,68,68,0.22); }
+
+        /* --- RESPONSIVE: TABLET --- */
+        @media (max-width: 1024px) {
+            :root { --reel-item-width: 180px; }
+            main { padding: 2rem 1.25rem; }
+            .browse-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1.25rem; }
+        }
+
+        /* --- RESPONSIVE: MOBILE --- */
+        @media (max-width: 640px) {
+            :root { --reel-item-width: 130px; }
+
+            nav { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+            .nav-left { gap: 1rem; flex: 1; min-width: 0; }
+            .nav-links { gap: 0.75rem; font-size: 0.85rem; }
+
+            .nav-right { gap: 0.5rem; }
+            .wallet-btn { padding: 0.45rem 0.75rem; font-size: 0.85rem; }
+            .cart-btn { padding: 0.4rem 0.65rem; font-size: 0.8rem; }
+            .cart-badge { width: 18px; height: 18px; font-size: 0.7rem; }
+            .profile-btn { width: 30px; height: 30px; font-size: 0.85rem; }
+
+            main { padding: 1.5rem 0.75rem; }
+
+            .browse-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .browse-card { padding: 1rem 0.5rem; }
+            .css-pack { width: 120px; height: 175px; }
+            .css-pack-name { font-size: 0.75rem; }
+            .pack-item-img { width: 50px !important; height: 50px !important; }
+            .pack-item-img:nth-child(2) { width: 58px !important; height: 58px !important; }
+            .browse-card .price { font-size: 0.95rem; }
+
+            .opening-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .opening-pack { width: 80px; height: 115px; }
+            .opening-pack .css-pack { transform: scale(0.5); }
+            .case-header-title { font-size: 1.4rem; }
+            .case-header-subtitle { font-size: 0.85rem; }
+
+            .reel-container { height: 190px; }
+            .spin-item img { height: 65px; width: 70%; margin-bottom: 24px; }
+            .spin-item-name { font-size: 0.75rem; }
+            .spin-item-price { font-size: 0.85rem; }
+
+            .controls-row { flex-wrap: wrap; justify-content: center; gap: 0.5rem; padding-bottom: 2rem; }
+            .qty-selector { margin-right: 0.5rem; height: 40px; }
+            .qty-btn { width: 34px; }
+            .btn-open { padding: 0 1.4rem; font-size: 0.9rem; height: 40px; }
+            .btn-demo { padding: 0 1.2rem; font-size: 0.9rem; height: 40px; }
+            .fast-mode-toggle { margin-left: 0.25rem; }
+
+            .section-title { font-size: 1.1rem; margin-bottom: 1rem; }
+            .items-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .grid-item { padding: 1rem 0.75rem; }
+            .grid-item img { width: 70px; height: 70px; }
+            .item-name { font-size: 0.75rem; }
+            .item-price { font-size: 0.85rem; }
+            #spin-result-msg { font-size: 1rem; }
+        }
+
+        /* --- RESPONSIVE: SMALL PHONES --- */
+        @media (max-width: 420px) {
+            :root { --reel-item-width: 110px; }
+
+            nav { padding: 0.6rem 0.75rem; }
+            .nav-left { width: 100%; justify-content: space-between; }
+            .nav-right { width: 100%; justify-content: flex-end; }
+            .logo { font-size: 1.1rem; gap: 0.4rem; }
+            .logo svg { width: 18px; height: 18px; }
+            .nav-links { gap: 0.75rem; font-size: 0.8rem; }
+
+            .wallet-btn { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+            .cart-btn { padding: 0.35rem 0.55rem; font-size: 0.75rem; }
+
+            main { padding: 1.25rem 0.5rem; }
+            .browse-grid { gap: 0.5rem; }
+            .css-pack { width: 100px; height: 150px; }
+            .pack-item-img { width: 40px !important; height: 40px !important; }
+            .pack-item-img:nth-child(2) { width: 48px !important; height: 48px !important; }
+            .browse-card .price { font-size: 0.85rem; }
+
+            .case-header-title { font-size: 1.2rem; }
+            .reel-container { height: 160px; }
+            .spin-item img { height: 50px; margin-bottom: 20px; }
+
+            .controls-row { gap: 0.4rem; }
+            .btn-open { padding: 0 1rem; font-size: 0.8rem; height: 38px; }
+            .btn-demo { padding: 0 0.8rem; font-size: 0.8rem; height: 38px; }
+            .qty-selector { height: 38px; }
+            .qty-btn { width: 30px; font-size: 1rem; }
+            .qty-text { padding: 0 8px; font-size: 0.85rem; min-width: 32px; }
+
+            .items-grid { gap: 0.5rem; }
+            .grid-item { padding: 0.75rem 0.5rem; }
+            .grid-item img { width: 60px; height: 60px; margin-bottom: 0.5rem; }
+        }
+
+        /* --- BLACKJACK --- */
+        .bj-table{background:radial-gradient(ellipse at center,#1c5b3a 0%,#0f3d26 70%,#0a2c1b 100%);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:2rem 1.5rem;box-shadow:inset 0 0 60px rgba(0,0,0,0.45);min-height:380px;position:relative;overflow:hidden;}
+        .bj-bet-row{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:center;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1rem;max-width:420px;margin:0 auto 1.5rem;}
+        .bj-deck-stack{position:absolute;top:20px;right:20px;width:74px;height:104px;z-index:10;}
+        .bj-deck-card{position:absolute;top:0;left:0;width:74px;height:104px;border-radius:8px;background:repeating-linear-gradient(45deg,#1e293b 0,#1e293b 6px,#334155 6px,#334155 12px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 4px 10px rgba(0,0,0,0.4);}
+        .bj-deck-card::after{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,0.18);border-radius:5px;}
+        .bj-deck-count{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.4);}
+        .bj-area{display:flex;flex-direction:column;gap:1.75rem;align-items:center;margin-bottom:1rem;}
+        .bj-hand-block{width:100%;text-align:center;}
+        .bj-hand-label{font-size:0.95rem;font-weight:800;color:#fff;margin-bottom:0.75rem;text-shadow:0 2px 4px rgba(0,0,0,0.5);letter-spacing:0.5px;}
+        .bj-total{display:inline-block;margin-left:0.4rem;font-size:0.85rem;font-weight:800;color:#fde68a;background:rgba(0,0,0,0.3);border-radius:6px;padding:0.1rem 0.5rem;}
+        .bj-cards{display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;min-height:108px;position:relative;}
+        .bj-card{width:74px;height:104px;border-radius:8px;position:relative;flex-shrink:0;box-shadow:0 6px 14px rgba(0,0,0,0.45);background:linear-gradient(145deg,#fdfdf5,#e8e6d4);border:1px solid rgba(0,0,0,0.15);perspective:800px;}
+        .bj-card.red{color:#d11f2d;}
+        .bj-card.black{color:#1a1a1a;}
+        .bj-card-corner{position:absolute;font-weight:800;line-height:1;display:flex;flex-direction:column;align-items:center;}
+        .bj-card-corner.tl{top:6px;left:7px;}
+        .bj-card-corner.br{bottom:6px;right:7px;transform:rotate(180deg);}
+        .bj-card-corner .bj-rank{font-size:0.95rem;}
+        .bj-card-corner .bj-suit-s{font-size:0.8rem;}
+        .bj-card-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2.2rem;line-height:1;}
+        .bj-card.back{background:repeating-linear-gradient(45deg,#1e293b 0,#1e293b 6px,#334155 6px,#334155 12px);border:1px solid rgba(255,255,255,0.12);color:transparent;}
+        .bj-card.back .bj-card-corner,.bj-card.back .bj-card-center{visibility:hidden;}
+        .bj-card.back::after{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,0.18);border-radius:5px;}
+        .bj-fly{position:absolute;z-index:100;width:74px;height:104px;border-radius:8px;background:repeating-linear-gradient(45deg,#1e293b 0,#1e293b 6px,#334155 6px,#334155 12px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 20px rgba(0,0,0,0.5);transition:all 0.45s cubic-bezier(0.25,0.46,0.45,0.94);pointer-events:none;}
+        .bj-fly::after{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,0.18);border-radius:5px;transition:opacity 0.15s;}
+        .bj-result{text-align:center;font-size:1.4rem;font-weight:900;min-height:1.6em;margin:0.5rem 0 1rem;letter-spacing:0.5px;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
+        .bj-result.win{color:#4ade80;}
+        .bj-result.lose{color:#ef4444;}
+        .bj-result.push{color:#fde68a;}
+        .bj-actions{display:flex;gap:0.75rem;justify-content:center;}
+        .bj-actions .btn-open,.bj-actions .btn-demo{min-width:110px;}
+        @media(max-width:480px){
+            .bj-card{width:60px;height:86px;}
+            .bj-card-center{font-size:1.7rem;}
+            .bj-card-corner .bj-rank{font-size:0.8rem;}
+            .bj-fly{width:60px;height:86px;}
+            .bj-deck-stack{right:10px;top:10px;width:60px;height:86px;}
+            .bj-deck-card{width:60px;height:86px;}
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="starfield"></canvas>
+
+    <div id="login-page">
+        <div class="login-box">
+            <div class="login-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#fff"/></svg>
+                RoUnbox
+            </div>
+
+            <div id="admin-setup" style="display:none">
+                <div style="text-align:center;margin-bottom:1.5rem">
+                    <div style="font-size:1.05rem;font-weight:800;color:white">First Time Setup</div>
+                    <div style="font-size:0.8rem;color:#6b7280;margin-top:0.35rem">Create your owner account</div>
+                </div>
+                <form onsubmit="handleAdminSetup(event)">
+                    <input type="text" class="login-input" id="setup-user" placeholder="Username" autocomplete="username">
+                    <input type="password" class="login-input" id="setup-pass" placeholder="Password (6+ characters)" autocomplete="new-password">
+                    <input type="password" class="login-input" id="setup-confirm" placeholder="Confirm Password" autocomplete="new-password">
+                    <div class="login-error" id="setup-error"></div>
+                    <button type="submit" class="login-submit">Create Account</button>
+                </form>
+            </div>
+
+            <div id="auth-forms">
+                <div class="login-tabs">
+                    <button class="login-tab active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
+                    <button class="login-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+                </div>
+                <form id="login-form" onsubmit="handleLogin(event)">
+                    <input type="text" class="login-input" id="login-user" placeholder="Username" autocomplete="username">
+                    <input type="password" class="login-input" id="login-pass" placeholder="Password" autocomplete="current-password">
+                    <div class="login-error" id="login-error"></div>
+                    <button type="submit" class="login-submit">Login</button>
+                </form>
+                <form id="signup-form" style="display:none" onsubmit="handleSignup(event)">
+                    <input type="text" class="login-input" id="signup-user" placeholder="Username" autocomplete="username">
+                    <input type="password" class="login-input" id="signup-pass" placeholder="Password" autocomplete="new-password">
+                    <input type="password" class="login-input" id="signup-confirm" placeholder="Confirm Password" autocomplete="new-password">
+                    <div class="login-error" id="signup-error"></div>
+                    <button type="submit" class="login-submit">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <nav style="display:none">
+        <div class="nav-left">
+            <div class="logo" onclick="showPage('browser')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#ffffff"/>
+                </svg>
+                RoUnbox
+            </div>
+            <div class="nav-links">
+                <a class="active" onclick="showPage('browser')" id="nav-browser">Packs</a>
+                <a onclick="showPage('battles')" id="nav-battles">Battles</a>
+                <a onclick="showPage('coinflip')" id="nav-coinflip">Coinflip</a>
+                <a onclick="showPage('blackjack')" id="nav-blackjack">Blackjack</a>
+                <a onclick="showPage('inventory')" id="nav-inventory">Inventory</a>
+                <a onclick="showPage('admin')" id="nav-admin" class="admin-nav-link" style="display:none">Admin</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span class="avatar nav-avatar" id="nav-avatar" onclick="document.getElementById('avatar-file-input').click()" title="Change avatar"></span>
+                <span id="user-display"></span>
+                <span class="admin-badge" id="admin-badge" style="display:none">ADMIN</span>
+            </div>
+            <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+            <button class="cart-btn" onclick="showPage('inventory')">
+                Cart <div class="cart-badge" id="inv-count">0</div>
+            </button>
+            <button class="wallet-btn" style="cursor:default;pointer-events:none;">
+                $ <span id="bal-display">0.00</span>
+            </button>
+            <button class="logout-btn" onclick="handleLogout()">Logout</button>
+        </div>
+    </nav>
+
+    <main style="display:none">
+        <div id="page-browser" class="page active">
+            <h2 class="section-title">Packs</h2>
+            <div class="browse-grid" id="browse-grid"></div>
+        </div>
+
+        <div id="page-opening" class="page">
+            <div class="back-link" onclick="showPage('browser')">← Back to Packs</div>
+
+            <div class="spinner-section">
+                <div class="opening-header">
+                    <div class="opening-pack" id="case-header-pack"></div>
+                    <div class="opening-meta">
+                        <h1 class="case-header-title" id="case-header-name">Pack Name</h1>
+                        <p class="case-header-subtitle">Goodluck!</p>
+                    </div>
+                </div>
+
+                <div class="spinners-container-stack" id="spinners-stack"></div>
+                <div id="spin-result-msg"></div>
+
+                <div class="controls-row">
+                    <div class="qty-selector">
+                        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                        <span class="qty-text" id="qty-display">x1</span>
+                        <button class="qty-btn" onclick="changeQty(1)">+</button>
+                    </div>
+                    <button class="btn-open" id="btn-open" onclick="roll(false)">Open for $0.00</button>
+                    <button class="btn-demo" id="btn-demo" onclick="roll(true)">Demo</button>
+
+                    <button class="fast-mode-toggle" id="btn-fast" onclick="toggleFastMode()" title="Fast Mode">
+                        <svg viewBox="0 0 24 24"><path d="M13 2.05v9h7.45l-11.5 11.5v-9H1.55L13 2.05z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Pack Contents</h2>
+            <div class="items-grid" id="pack-grid"></div>
+        </div>
+
+        <div id="page-battles" class="page">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem;">
+                <h2 class="section-title" style="margin:0;">Case Battles</h2>
+                <button class="btn-open" style="padding:0 1.5rem;height:40px;font-size:0.95rem;" onclick="showPage('create-battle')">+ Create Battle</button>
+            </div>
+            <div id="battles-list" class="battle-list"></div>
+        </div>
+
+        <div id="page-create-battle" class="page">
+            <div class="back-link" onclick="showPage('battles')">&larr; Back to Battles</div>
+            <h2 class="section-title">Create Battle</h2>
+            <div class="create-section"><div class="create-label">Format</div><div class="create-options" id="create-format-opts"></div></div>
+            <div class="create-section"><div class="create-label">Scoring</div><div class="create-options" id="create-scoring-opts"></div></div>
+            <div class="create-section" style="display:flex;gap:2rem;flex-wrap:wrap;">
+                <div class="create-toggle" onclick="toggleCreateQuick()"><div class="toggle-switch" id="toggle-quick"></div> Quick Mode</div>
+            </div>
+            <div class="create-section">
+                <div class="create-label">Selected packs (open in this order)</div>
+                <div id="selected-cases"></div>
+            </div>
+            <div class="create-total" id="create-total">Total: $0.00 per player</div>
+            <button class="btn-open" id="create-battle-btn" onclick="createBattleAction()" disabled style="font-size:1rem;padding:0 2rem;height:46px;">Select at least 1 case</button>
+        </div>
+
+        <div id="page-battle-room" class="page">
+            <div class="back-link" id="battle-room-back" onclick="leaveBattleRoom()">&larr; Back to Battles</div>
+            <div id="battle-room-content"></div>
+        </div>
+
+        <div id="page-coinflip" class="page">
+            <h2 class="section-title">Coinflip</h2>
+            <div class="cf-create-row">
+                <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);">Bet: $</span>
+                <input type="number" id="cf-custom-amount" class="login-input" style="width:120px;margin:0;padding:0.4rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5" oninput="cfState.amount=parseFloat(this.value)||0">
+                <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);margin-left:0.5rem;">Side:</span>
+                <div class="cf-sides" id="cf-sides"></div>
+                <button class="btn-open" style="padding:0 1.2rem;height:36px;font-size:0.88rem;margin-left:auto;" id="cf-create-btn" onclick="createCoinflip()">Create</button>
+            </div>
+            <div id="cf-active-area"></div>
+            <h3 class="section-title" style="font-size:1rem;margin-top:1.5rem;">Open Coinflips</h3>
+            <div id="cf-list" class="cf-list"></div>
+        </div>
+
+        <div id="page-coinflip-room" class="page">
+            <div class="back-link" onclick="activeCoinflipId=null;showPage('coinflip')">&larr; Back to Coinflips</div>
+            <div id="cf-room-content"></div>
+        </div>
+
+        <div id="case-select-modal" class="case-modal-overlay" style="display:none" onclick="if(event.target===this)closeCaseModal()">
+            <div class="case-modal">
+                <div class="case-modal-header"><h3>Select a Pack</h3><button class="case-modal-close" onclick="closeCaseModal()">&times;</button></div>
+                <div class="case-modal-body"><div class="case-modal-grid" id="case-modal-grid"></div></div>
+            </div>
+        </div>
+
+        <div id="page-admin" class="page">
+            <div class="admin-panel-header">
+                <h2 class="section-title" style="margin:0;">Admin Panel</h2>
+                <div class="admin-stats" id="admin-stats"></div>
+            </div>
+            <input type="text" class="admin-search" id="admin-search" placeholder="Search users..." oninput="renderAdminPanel()">
+            <div style="overflow-x:auto">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Balance</th>
+                            <th>Items</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-inventory" class="page">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 class="section-title" style="margin:0;">Your Inventory</h2>
+                <button class="btn-demo" style="color: #ef4444; border-color: transparent;" onclick="sellAll()">Sell All</button>
+            </div>
+            <div class="items-grid" id="inventory-grid"></div>
+        </div>
+
+        <div id="page-blackjack" class="page">
+            <h2 class="section-title">Blackjack</h2>
+            <div class="bj-table" id="bj-table">
+                <div class="bj-deck-stack" id="bj-deck-stack" style="display:none;">
+                    <div class="bj-deck-card" style="top:4px;left:2px;"></div>
+                    <div class="bj-deck-card" style="top:2px;left:1px;"></div>
+                    <div class="bj-deck-card" id="bj-deck-top"></div>
+                    <div class="bj-deck-count" id="bj-deck-count"></div>
+                </div>
+                <div class="bj-bet-row" id="bj-bet-row">
+                    <span style="font-weight:700;font-size:0.9rem;color:var(--text-main);">Bet: $</span>
+                    <input type="number" id="bj-bet-amount" class="login-input" style="width:130px;margin:0;padding:0.45rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5">
+                    <button class="btn-open" id="bj-deal-btn" style="padding:0 1.6rem;height:42px;" onclick="bjDeal()">Deal</button>
+                </div>
+
+                <div class="bj-area" id="bj-area" style="display:none;">
+                    <div class="bj-hand-block">
+                        <div class="bj-hand-label">Dealer <span class="bj-total" id="bj-dealer-total"></span></div>
+                        <div class="bj-cards" id="bj-dealer-cards"></div>
+                    </div>
+                    <div class="bj-hand-block">
+                        <div class="bj-hand-label">You <span class="bj-total" id="bj-player-total"></span></div>
+                        <div class="bj-cards" id="bj-player-cards"></div>
+                    </div>
+                </div>
+
+                <div class="bj-result" id="bj-result"></div>
+
+                <div class="bj-actions" id="bj-actions" style="display:none;">
+                    <button class="btn-open" id="bj-hit-btn" onclick="bjHit()">Hit</button>
+                    <button class="btn-demo" id="bj-stand-btn" onclick="bjStand()">Stand</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- WEB AUDIO API ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTick() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playWin() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+            osc.start(); osc.stop(audioCtx.currentTime + 1);
+        }
+
+        // --- STARFIELD CANVAS ENGINE (calm) ---
+        function initStars() {
+            const canvas = document.getElementById('starfield');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+            function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize); resize();
+            const colors = ['#ffffff', '#ffffff', '#ffffff', '#ffffff', '#cbd5e1'];
+            const MAX_ALPHA = 0.32;
+            for (let i = 0; i < 34; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 0.7 + 0.25,
+                    vx: (Math.random() - 0.5) * 0.04, vy: (Math.random() - 0.5) * 0.04, alpha: Math.random() * 0.22,
+                    dAlpha: (Math.random() * 0.0035 + 0.0012) * (Math.random() < 0.5 ? 1 : -1),
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(s => {
+                    s.x += s.vx; s.y += s.vy; s.alpha += s.dAlpha;
+                    if (s.alpha <= 0) { s.alpha = 0; s.dAlpha *= -1; s.x = Math.random() * canvas.width; s.y = Math.random() * canvas.height; }
+                    else if (s.alpha >= MAX_ALPHA) { s.alpha = MAX_ALPHA; s.dAlpha *= -1; }
+                    if (s.x < 0) s.x = canvas.width; if (s.x > canvas.width) s.x = 0;
+                    if (s.y < 0) s.y = canvas.height; if (s.y > canvas.height) s.y = 0;
+                    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fillStyle = s.color; ctx.globalAlpha = s.alpha; ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+        initStars();
+
+        // --- IMAGE REGISTRY (your local assets) ---
+        const IMAGES = {
+            dirt: "assets/images/items/dirt.png",
+            "1-dollar-bill": "assets/images/items/1-dollar-bill.png",
+            gold: "assets/images/items/gold.png",
+            mousepad: "assets/images/items/mousepad.png",
+            usbdrive: "assets/images/items/usb-drive.png",
+            mouse: "assets/images/items/gaming-mouse.png",
+            keyboard: "assets/images/items/mechanical-keyboard.png",
+            airpods: "assets/images/items/airpods.png",
+            controller: "assets/images/items/xbox-controller.png",
+            switch: "assets/images/items/nintendo-switch.png",
+            ps5: "assets/images/items/ps5.png",
+            rolex: "assets/images/items/rolex.png",
+            rtx: "assets/images/items/rtx4090.png",
+            penny: "assets/images/items/2007-us-penny.png",
+            highpowerpc: "assets/images/items/red-LED-high-power-pc.png",
+            shovel: "assets/images/items/shovel.png",
+            bill500: "assets/images/items/500-dollar-bill.png",
+            plate: "assets/images/items/clean-plate.png",
+            pencil: "assets/images/items/black-pencil.png",
+            coffee: "assets/images/items/cup-with-coffee.png",
+            iphone12: "assets/images/items/purple-iphone-12.png",
+            iphone15: "assets/images/items/iphone-15-pro.png",
+            bmwx5: "assets/images/items/brown-bmw-x5.png",
+            dice: "assets/images/items/dice-with-dicebox.png",
+            basketball: "assets/images/items/spading-basketball.png",
+            notebook: "assets/images/items/old-notebook.png",
+            pizzabox: "assets/images/items/empty-pizza-box.png",
+            vintlamp: "assets/images/items/vintage-lamp.png",
+            lightbulb: "assets/images/items/lightbulb.png",
+            legosticker: "assets/images/items/lego-sticker.png",
+            ecigar: "assets/images/items/e-cigar.png",
+            thanksticker: "assets/images/items/thanksgiving-sticker.png",
+            greyhoodie: "assets/images/items/grey-hoodie.png",
+            lolhoodie: "assets/images/items/league-of-legends-hoodie.png",
+            chess: "assets/images/items/chess-set.png",
+            grass: "assets/images/items/grass-you-can-touch.png",
+            rope: "assets/images/items/rope.png",
+            duck: "assets/images/items/plastic-duck.png",
+            poseidon: "assets/images/items/Poseidon-toy-figurine.png",
+            xylophone: "assets/images/items/Xylophone-toy.png",
+            camera: "assets/images/items/Sony-ZV1-camera.png",
+            bmwsticker: "assets/images/items/bmw-sticker.png",
+            gt86: "assets/images/items/Race-Gt86-Red-White-Toyota.png",
+            waterbottle: "assets/images/items/Plastic-water-bottle.png",
+            papers: "assets/images/items/messy-stack-paper.png",
+            chair: "assets/images/items/wooden-chair.png"
+        };
+
+        // --- MASTER ITEM LIST (each case picks its own subset) ---
+        const ITEMS = {
+            dirt:        { name: 'Dirt',              price: 0.01,      imgKey: 'dirt',          rarity: 'common' },
+            penny:       { name: 'Penny',             price: 0.01,      imgKey: 'penny',         rarity: 'common' },
+            grass:       { name: 'Patch of Grass',    price: 0.01,      imgKey: 'grass',         rarity: 'common' },
+            pizzabox:    { name: 'Empty Pizza Box',   price: 0.05,      imgKey: 'pizzabox',      rarity: 'common' },
+            papers:      { name: 'Stack of Papers',   price: 0.05,      imgKey: 'papers',        rarity: 'common' },
+            waterbottle: { name: 'Water Bottle',      price: 0.10,      imgKey: 'waterbottle',   rarity: 'common' },
+            pencil:      { name: 'Pencil',            price: 0.15,      imgKey: 'pencil',        rarity: 'common' },
+            lightbulb:   { name: 'Light Bulb',        price: 0.25,      imgKey: 'lightbulb',     rarity: 'common' },
+            thanksticker:{ name: 'Turkey Sticker',    price: 0.25,      imgKey: 'thanksticker',  rarity: 'common' },
+            plate:       { name: 'Clean Plate',       price: 0.50,      imgKey: 'plate',         rarity: 'common' },
+            legosticker: { name: 'Lego Sticker',      price: 0.50,      imgKey: 'legosticker',   rarity: 'common' },
+            bmwsticker:  { name: 'BMW Sticker',       price: 0.75,      imgKey: 'bmwsticker',    rarity: 'common' },
+            rope:        { name: 'Rope',              price: 0.75,      imgKey: 'rope',          rarity: 'common' },
+            duck:        { name: 'Rubber Duck',       price: 1.00,      imgKey: 'duck',          rarity: 'common' },
+            dollar:      { name: '1 Dollar Bill',     price: 1.00,      imgKey: '1-dollar-bill', rarity: 'common' },
+            mousepad:    { name: 'Mousepad',          price: 1.50,      imgKey: 'mousepad',      rarity: 'common' },
+            notebook:    { name: 'Old Notebook',      price: 1.50,      imgKey: 'notebook',      rarity: 'common' },
+            usb:         { name: 'USB Drive',         price: 2.00,      imgKey: 'usbdrive',      rarity: 'common' },
+            coffee:      { name: 'Cup of Coffee',     price: 3.00,      imgKey: 'coffee',        rarity: 'common' },
+            shovel:      { name: 'Shovel',            price: 5.00,      imgKey: 'shovel',        rarity: 'common' },
+            chair:       { name: 'Wooden Chair',      price: 5.00,      imgKey: 'chair',         rarity: 'common' },
+            dice:        { name: 'Dice Set',          price: 8.00,      imgKey: 'dice',          rarity: 'rare' },
+            ecigar:      { name: 'E-Cigarette',       price: 12.00,     imgKey: 'ecigar',        rarity: 'rare' },
+            vintlamp:    { name: 'Vintage Lamp',      price: 15.00,     imgKey: 'vintlamp',      rarity: 'rare' },
+            xylophone:   { name: 'Xylophone Toy',     price: 15.00,     imgKey: 'xylophone',     rarity: 'rare' },
+            mouse:       { name: 'Gaming Mouse',      price: 20.00,     imgKey: 'mouse',         rarity: 'rare' },
+            poseidon:    { name: 'Poseidon Figurine',  price: 25.00,     imgKey: 'poseidon',      rarity: 'rare' },
+            basketball:  { name: 'Spalding Basketball',price: 30.00,     imgKey: 'basketball',    rarity: 'rare' },
+            greyhoodie:  { name: 'Grey Hoodie',        price: 35.00,     imgKey: 'greyhoodie',    rarity: 'rare' },
+            chess:       { name: 'Chess Set',          price: 40.00,     imgKey: 'chess',         rarity: 'rare' },
+            lolhoodie:   { name: 'LoL Hoodie',         price: 45.00,     imgKey: 'lolhoodie',     rarity: 'rare' },
+            controller:  { name: 'Xbox Controller',    price: 69.99,     imgKey: 'controller',    rarity: 'epic' },
+            keyboard:    { name: 'Mech Keyboard',      price: 120.00,    imgKey: 'keyboard',      rarity: 'epic' },
+            airpods:     { name: 'AirPods',            price: 159.00,    imgKey: 'airpods',       rarity: 'epic' },
+            nswitch:     { name: 'Nintendo Switch',    price: 299.99,    imgKey: 'switch',        rarity: 'epic' },
+            iphone12:    { name: 'iPhone 12',          price: 399.00,    imgKey: 'iphone12',      rarity: 'epic' },
+            bill500:     { name: '$500 Bill',          price: 500.00,    imgKey: 'bill500',       rarity: 'epic' },
+            camera:      { name: 'Sony ZV-1 Camera',   price: 650.00,    imgKey: 'camera',        rarity: 'epic' },
+            ps5:         { name: 'PlayStation 5',      price: 499.99,    imgKey: 'ps5',           rarity: 'legendary' },
+            iphone15:    { name: 'iPhone 15 Pro',      price: 999.00,    imgKey: 'iphone15',      rarity: 'legendary' },
+            rtx:         { name: 'RTX 4090',           price: 1599.00,   imgKey: 'rtx',           rarity: 'legendary' },
+            highpowerpc: { name: 'Gaming PC',          price: 3500.00,   imgKey: 'highpowerpc',   rarity: 'legendary' },
+            rolex:       { name: 'Rolex Watch',        price: 15000.00,  imgKey: 'rolex',         rarity: 'legendary' },
+            gt86:        { name: 'Toyota GT86',        price: 28000.00,  imgKey: 'gt86',          rarity: 'legendary' },
+            bmwx5:       { name: 'BMW X5',             price: 55000.00,  imgKey: 'bmwx5',         rarity: 'legendary' }
+        };
+        function getItem(id) { return { ...ITEMS[id], id }; }
+        function goldToken() { return { id: 'GOLD', name: 'Gold Spin', price: 0, imgKey: 'gold', rarity: 'gold-spin', isToken: true }; }
+
+        /* Each case has its own pools:
+           normal: [ [itemId, weight], ... , ['GOLD', weight] ]   (what you can pull; GOLD = re-spin)
+           gold:   [ [itemId, weight], ... ]                       (premium pool unlocked by a Gold Spin)   */
+        const CASES = [
+            {
+                id: 'pennyflip', name: 'Penny Flip', price: 0.10,
+                c1: '#52525b', c2: '#27272a', displayItems: ['penny', 'dirt'],
+                normal: [['penny',30],['dirt',22],['grass',18],['pizzabox',10],['papers',8],['waterbottle',5],['pencil',3],['lightbulb',2],['GOLD',2]],
+                gold:   [['dollar',35],['plate',25],['duck',20],['notebook',12],['bmwsticker',8]]
+            },
+            {
+                id: 'junkdrawer', name: 'Junk Drawer', price: 0.50,
+                c1: '#92400e', c2: '#451a03', displayItems: ['pizzabox', 'rope'],
+                normal: [['dirt',16],['grass',12],['pizzabox',12],['waterbottle',9],['pencil',8],['penny',7],['papers',6],['lightbulb',5],['duck',4],['rope',4],['plate',3],['thanksticker',3],['legosticker',2],['GOLD',3]],
+                gold:   [['dollar',25],['coffee',22],['notebook',18],['mousepad',15],['usb',12],['shovel',8]]
+            },
+            {
+                id: 'dirtcheap', name: 'Dirt Cheap', price: 1.00,
+                c1: '#6b7280', c2: '#374151', displayItems: ['dirt', '1-dollar-bill'],
+                normal: [['dirt',22],['dollar',14],['penny',12],['grass',8],['mousepad',6],['waterbottle',5],['pencil',5],['duck',4],['usb',4],['lightbulb',3],['plate',3],['notebook',2],['rope',2],['GOLD',2]],
+                gold:   [['dice',25],['mouse',22],['ecigar',15],['shovel',12],['vintlamp',10],['poseidon',8],['basketball',5],['chess',3]]
+            },
+            {
+                id: 'stickerpack', name: 'Sticker Pack', price: 2.00,
+                c1: '#14b8a6', c2: '#134e4a', displayItems: ['legosticker', 'bmwsticker'],
+                normal: [['legosticker',20],['bmwsticker',16],['thanksticker',14],['penny',10],['pencil',7],['duck',6],['lightbulb',5],['dirt',4],['papers',3],['waterbottle',3],['grass',2],['plate',2],['GOLD',3]],
+                gold:   [['dice',24],['poseidon',20],['xylophone',16],['ecigar',14],['mouse',12],['chess',8],['basketball',6]]
+            },
+            {
+                id: 'pocket', name: 'Pocket Change', price: 3.00,
+                c1: '#22c55e', c2: '#14532d', displayItems: ['1-dollar-bill', 'mousepad'],
+                normal: [['dollar',16],['dirt',10],['mousepad',9],['usb',7],['penny',6],['coffee',5],['notebook',5],['duck',4],['pencil',4],['rope',3],['shovel',3],['lightbulb',2],['mouse',2],['GOLD',3]],
+                gold:   [['controller',24],['basketball',18],['greyhoodie',16],['chess',12],['ecigar',10],['vintlamp',8],['keyboard',5],['airpods',3]]
+            },
+            {
+                id: 'dollarstore', name: 'Dollar Store', price: 5.00,
+                c1: '#eab308', c2: '#713f12', displayItems: ['duck', 'coffee'],
+                normal: [['dollar',12],['mousepad',9],['usb',8],['coffee',7],['notebook',6],['duck',5],['pencil',5],['shovel',5],['rope',4],['plate',4],['lightbulb',3],['vintlamp',3],['legosticker',3],['GOLD',3]],
+                gold:   [['mouse',24],['basketball',18],['greyhoodie',15],['chess',12],['poseidon',10],['ecigar',8],['keyboard',7],['lolhoodie',6]]
+            },
+            {
+                id: 'officeraid', name: 'Office Raid', price: 8.00,
+                c1: '#64748b', c2: '#1e293b', displayItems: ['pencil', 'notebook'],
+                normal: [['pencil',14],['notebook',12],['papers',10],['coffee',8],['lightbulb',6],['plate',6],['mousepad',6],['usb',5],['chair',4],['vintlamp',3],['dollar',3],['rope',2],['duck',2],['GOLD',3]],
+                gold:   [['mouse',24],['chess',18],['greyhoodie',15],['keyboard',12],['basketball',10],['ecigar',8],['controller',7],['lolhoodie',6]]
+            },
+            {
+                id: 'hobbybox', name: 'Hobby Box', price: 15.00,
+                c1: '#f97316', c2: '#7c2d12', displayItems: ['dice', 'xylophone'],
+                normal: [['dice',12],['duck',9],['xylophone',9],['poseidon',8],['legosticker',7],['rope',5],['coffee',5],['notebook',4],['vintlamp',4],['ecigar',3],['bmwsticker',3],['pencil',3],['GOLD',4]],
+                gold:   [['basketball',20],['chess',16],['mouse',14],['greyhoodie',12],['keyboard',10],['lolhoodie',8],['controller',6],['airpods',4]]
+            },
+            {
+                id: 'tech', name: 'Tech Starter', price: 25.00,
+                c1: '#3b82f6', c2: '#1e3a8a', displayItems: ['mouse', 'mousepad'],
+                normal: [['mousepad',14],['usb',10],['dollar',7],['pencil',5],['coffee',5],['notebook',5],['lightbulb',4],['duck',3],['mouse',5],['vintlamp',3],['keyboard',3],['ecigar',2],['GOLD',4]],
+                gold:   [['controller',22],['basketball',16],['greyhoodie',14],['chess',12],['airpods',10],['lolhoodie',8],['poseidon',6],['iphone12',3]]
+            },
+            {
+                id: 'streetwear', name: 'Streetwear Drop', price: 35.00,
+                c1: '#ec4899', c2: '#831843', displayItems: ['greyhoodie', 'lolhoodie'],
+                normal: [['bmwsticker',12],['legosticker',9],['rope',6],['duck',6],['ecigar',5],['dice',5],['coffee',4],['vintlamp',4],['notebook',3],['pencil',3],['thanksticker',3],['GOLD',4]],
+                gold:   [['greyhoodie',24],['lolhoodie',20],['basketball',14],['chess',12],['controller',10],['keyboard',8],['airpods',5],['poseidon',7]]
+            },
+            {
+                id: 'desk', name: 'Desk Setup', price: 50.00,
+                c1: '#0ea5e9', c2: '#0c4a6e', displayItems: ['mouse', 'keyboard'],
+                normal: [['usb',12],['mousepad',10],['coffee',7],['chair',6],['pencil',5],['notebook',5],['lightbulb',4],['mouse',5],['vintlamp',3],['plate',3],['papers',3],['keyboard',3],['GOLD',4]],
+                gold:   [['greyhoodie',20],['lolhoodie',16],['basketball',14],['chess',12],['controller',10],['airpods',8],['iphone12',4],['camera',3]]
+            },
+            {
+                id: 'gamer', name: 'Gamer Elite', price: 150.00,
+                c1: '#10b981', c2: '#064e3b', displayItems: ['controller', 'switch'],
+                normal: [['mouse',12],['dice',8],['ecigar',7],['usb',6],['mousepad',6],['keyboard',5],['duck',4],['coffee',3],['basketball',4],['greyhoodie',4],['vintlamp',3],['controller',3],['GOLD',5]],
+                gold:   [['airpods',20],['lolhoodie',16],['chess',12],['iphone12',12],['nswitch',10],['camera',8],['ps5',5],['bill500',4]]
+            },
+            {
+                id: 'creator', name: 'Content Creator', price: 200.00,
+                c1: '#f43f5e', c2: '#881337', displayItems: ['camera', 'iphone15'],
+                normal: [['usb',12],['mousepad',8],['mouse',6],['coffee',5],['notebook',5],['ecigar',4],['dice',4],['keyboard',4],['greyhoodie',3],['vintlamp',3],['basketball',3],['GOLD',5]],
+                gold:   [['camera',24],['airpods',16],['iphone12',14],['nswitch',10],['iphone15',8],['bill500',6],['ps5',4],['highpowerpc',3]]
+            },
+            {
+                id: 'console', name: 'Console Vault', price: 300.00,
+                c1: '#a855f7', c2: '#4c1d95', displayItems: ['ps5', 'switch'],
+                normal: [['keyboard',12],['mouse',9],['controller',8],['ecigar',6],['basketball',6],['greyhoodie',5],['vintlamp',4],['coffee',3],['lolhoodie',4],['chess',4],['airpods',3],['GOLD',5]],
+                gold:   [['nswitch',22],['iphone12',16],['ps5',14],['bill500',12],['camera',10],['iphone15',6],['rtx',4],['highpowerpc',2]]
+            },
+            {
+                id: 'luxury', name: 'Flex Pack', price: 500.00,
+                c1: '#f59e0b', c2: '#78350f', displayItems: ['rolex', 'ps5'],
+                normal: [['controller',10],['basketball',8],['greyhoodie',7],['chess',6],['mouse',6],['keyboard',5],['ecigar',5],['lolhoodie',5],['airpods',4],['dice',3],['vintlamp',3],['coffee',2],['GOLD',6]],
+                gold:   [['ps5',20],['bill500',16],['nswitch',14],['camera',12],['iphone15',10],['rtx',6],['highpowerpc',4],['rolex',2]]
+            },
+            {
+                id: 'royale', name: 'Jackpot Royale', price: 1000.00,
+                c1: '#ef4444', c2: '#7f1d1d', displayItems: ['rolex', 'rtx'],
+                normal: [['controller',10],['airpods',8],['keyboard',7],['basketball',7],['chess',6],['lolhoodie',5],['greyhoodie',5],['mouse',5],['nswitch',3],['iphone12',3],['dice',3],['ecigar',2],['GOLD',6]],
+                gold:   [['ps5',18],['bill500',16],['camera',14],['iphone15',12],['rtx',10],['highpowerpc',6],['gt86',3],['rolex',2]]
+            },
+            {
+                id: 'whale', name: "Whale's Paradise", price: 2500.00,
+                c1: '#ca8a04', c2: '#713f12', displayItems: ['rtx', 'gt86'],
+                normal: [['nswitch',12],['controller',10],['airpods',8],['keyboard',7],['iphone12',6],['lolhoodie',5],['chess',5],['basketball',5],['greyhoodie',4],['camera',3],['ecigar',3],['mouse',2],['GOLD',7]],
+                gold:   [['ps5',18],['bill500',14],['iphone15',12],['rtx',12],['highpowerpc',10],['gt86',5],['rolex',3],['bmwx5',1]]
+            },
+            {
+                id: 'diamond', name: 'Diamond Reserve', price: 5000.00,
+                c1: '#60a5fa', c2: '#1e3a5f', displayItems: ['highpowerpc', 'bmwx5'],
+                normal: [['nswitch',10],['iphone12',8],['controller',8],['airpods',7],['keyboard',6],['ps5',5],['camera',5],['lolhoodie',4],['chess',4],['basketball',3],['greyhoodie',3],['bill500',3],['GOLD',8]],
+                gold:   [['iphone15',22],['rtx',18],['highpowerpc',16],['gt86',8],['rolex',5],['bmwx5',3]]
+            },
+            {
+                id: 'thevault', name: 'The Vault', price: 10000.00,
+                c1: '#fbbf24', c2: '#1a1a2e', displayItems: ['bmwx5', 'rolex'],
+                normal: [['ps5',10],['nswitch',9],['iphone12',8],['camera',7],['controller',7],['airpods',6],['keyboard',5],['iphone15',4],['bill500',4],['lolhoodie',3],['chess',3],['basketball',2],['greyhoodie',2],['GOLD',10]],
+                gold:   [['rtx',22],['highpowerpc',20],['gt86',14],['rolex',10],['bmwx5',5]]
+            }
+        ];
+
+        function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+        // --- AVATAR SYSTEM ---
+        const AVATAR_PALETTE=['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#ec4899'];
+        function getAvatarColor(username){
+            const name=(username||'?').toString();
+            let hash=0;
+            for(let i=0;i<name.length;i++){hash=(hash*31+name.charCodeAt(i))|0;}
+            return AVATAR_PALETTE[Math.abs(hash)%AVATAR_PALETTE.length];
+        }
+        function getUserAvatar(username){
+            try{const u=getUsers();return u[username]&&u[username].avatar?u[username].avatar:null;}catch(e){return null;}
+        }
+        // Returns inner-content + style for an .avatar element. extraClass appended.
+        // Optional size (px) sets explicit width/height/font-size on the avatar.
+        function getAvatarHTML(username,extraClass,size){
+            const name=(username||'?').toString();
+            const initial=name.replace(/^bot_/i,'').charAt(0)||'?';
+            const img=getUserAvatar(username);
+            const cls='avatar'+(extraClass?' '+extraClass:'');
+            const sizeStyle=(typeof size==='number'&&size>0)?`width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;`:'';
+            if(img){
+                return `<span class="${cls}" style="${sizeStyle}background:#222"><img src="${img}" draggable="false"></span>`;
+            }
+            return `<span class="${cls}" style="${sizeStyle}background:${getAvatarColor(name)}">${initial}</span>`;
+        }
+        function refreshNavAvatar(){
+            const el=document.getElementById('nav-avatar');if(!el||!currentUser)return;
+            const img=getUserAvatar(currentUser);
+            if(img){el.style.background='#222';el.innerHTML='<img src="'+img+'" draggable="false">';}
+            else{el.style.background=getAvatarColor(currentUser);el.innerHTML=(currentUser.charAt(0)||'?').toUpperCase();}
+        }
+        function handleAvatarUpload(e){
+            const file=e.target.files&&e.target.files[0];e.target.value='';
+            if(!file||!currentUser)return;
+            if(!file.type.startsWith('image/')){alert('Please select an image file');return;}
+            const reader=new FileReader();
+            reader.onload=function(ev){
+                const img=new Image();
+                img.onload=function(){
+                    const size=64;
+                    const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+                    const ctx=canvas.getContext('2d');
+                    // cover-fit crop to square
+                    const scale=Math.max(size/img.width,size/img.height);
+                    const w=img.width*scale,h=img.height*scale;
+                    ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);
+                    const dataUrl=canvas.toDataURL('image/png');
+                    const users=getUsers();
+                    if(users[currentUser]){users[currentUser].avatar=dataUrl;saveUsers(users);}
+                    refreshNavAvatar();
+                };
+                img.onerror=function(){alert('Could not load image');};
+                img.src=ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        let balance = 0.00;
+        let inventory = [];
+        let activeCase = null;
+        let isSpinning = false;
+        let fastMode = false;
+        let openQty = 1;
+        let activeReelTrackers = [];
+        let currentUser = null;
+
+        // --- AUTH SYSTEM ---
+        const AUTH_SALT = 'rounbox_s3cur3_2024';
+
+        async function hashPwd(pwd) {
+            const data = new TextEncoder().encode(pwd + AUTH_SALT);
+            const buf = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function getUsers() { try { return JSON.parse(localStorage.getItem('rounbox_users') || '{}'); } catch(e) { return {}; } }
+        function saveUsers(u) { localStorage.setItem('rounbox_users', JSON.stringify(u)); }
+        function getSession() { return localStorage.getItem('rounbox_session'); }
+        function setSession(u) { localStorage.setItem('rounbox_session', u); }
+        function clearSession() { localStorage.removeItem('rounbox_session'); }
+
+        function saveUserData() {
+            if (!currentUser) return;
+            const users = getUsers();
+            if (!users[currentUser]) return;
+            users[currentUser].balance = balance;
+            users[currentUser].inventory = inventory;
+            saveUsers(users);
+        }
+
+        function loadUserData(username) {
+            const users = getUsers();
+            if (!users[username]) return false;
+            balance = typeof users[username].balance === 'number' ? users[username].balance : 0;
+            inventory = Array.isArray(users[username].inventory) ? users[username].inventory : [];
+            currentUser = username;
+            return true;
+        }
+
+        function hasAdmin() {
+            const users = getUsers();
+            return Object.values(users).some(function(u) { return u.isAdmin; });
+        }
+
+        function showLoginUI() {
+            document.getElementById('login-page').style.display = 'flex';
+            document.querySelector('nav').style.display = 'none';
+            document.querySelector('main').style.display = 'none';
+            if (hasAdmin()) {
+                document.getElementById('admin-setup').style.display = 'none';
+                document.getElementById('auth-forms').style.display = '';
+            } else {
+                document.getElementById('admin-setup').style.display = '';
+                document.getElementById('auth-forms').style.display = 'none';
+            }
+        }
+
+        function showGameUI() {
+            document.getElementById('login-page').style.display = 'none';
+            document.querySelector('nav').style.display = '';
+            document.querySelector('main').style.display = '';
+            document.getElementById('user-display').innerText = currentUser;
+            const users = getUsers();
+            const isAdmin = users[currentUser] && users[currentUser].isAdmin;
+            document.getElementById('admin-badge').style.display = isAdmin ? 'inline' : 'none';
+            document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
+            refreshNavAvatar();
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+            document.getElementById('signup-form').style.display = tab === 'signup' ? '' : 'none';
+            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+            document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+            document.getElementById('login-error').innerText = '';
+            document.getElementById('signup-error').innerText = '';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-user').value.trim().toLowerCase();
+            const password = document.getElementById('login-pass').value;
+            const errEl = document.getElementById('login-error');
+            if (!username || !password) { errEl.innerText = 'Fill in all fields'; return; }
+            const users = getUsers();
+            if (!users[username]) { errEl.innerText = 'Account not found'; return; }
+            if (users[username].banned) { errEl.innerText = 'This account has been banned'; return; }
+            const hash = await hashPwd(password);
+            if (users[username].passwordHash !== hash) { errEl.innerText = 'Wrong password'; return; }
+            setSession(username);
+            loadUserData(username);
+            updateUI();
+            showGameUI();
+            renderBrowser();
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const username = document.getElementById('signup-user').value.trim().toLowerCase();
+            const password = document.getElementById('signup-pass').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const errEl = document.getElementById('signup-error');
+            if (!username || !password || !confirm) { errEl.innerText = 'Fill in all fields'; return; }
+            if (username.length < 3) { errEl.innerText = 'Username must be 3+ characters'; return; }
+            if (password.length < 4) { errEl.innerText = 'Password must be 4+ characters'; return; }
+            if (password !== confirm) { errEl.innerText = 'Passwords do not match'; return; }
+            if (!/^[a-z0-9_]+$/.test(username)) { errEl.innerText = 'Letters, numbers, underscores only'; return; }
+            const reserved = ['system','root'];
+            if (reserved.includes(username)) { errEl.innerText = 'Username not available'; return; }
+            const users = getUsers();
+            if (users[username]) { errEl.innerText = 'Username already taken'; return; }
+            const hash = await hashPwd(password);
+            users[username] = { passwordHash: hash, balance: 0, inventory: [], isAdmin: false };
+            saveUsers(users);
+            setSession(username);
+            loadUserData(username);
+            updateUI();
+            showGameUI();
+            renderBrowser();
+        }
+
+        function handleLogout() {
+            if (isSpinning) return;
+            saveUserData();
+            currentUser = null;
+            balance = 0;
+            inventory = [];
+            clearSession();
+            showLoginUI();
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            document.getElementById('signup-user').value = '';
+            document.getElementById('signup-pass').value = '';
+            document.getElementById('signup-confirm').value = '';
+            document.getElementById('login-error').innerText = '';
+            document.getElementById('signup-error').innerText = '';
+            switchAuthTab('login');
+        }
+
+        async function handleAdminSetup(e) {
+            e.preventDefault();
+            const username = document.getElementById('setup-user').value.trim().toLowerCase();
+            const password = document.getElementById('setup-pass').value;
+            const confirm = document.getElementById('setup-confirm').value;
+            const errEl = document.getElementById('setup-error');
+            if (!username || !password || !confirm) { errEl.innerText = 'Fill in all fields'; return; }
+            if (username.length < 3) { errEl.innerText = 'Username must be 3+ characters'; return; }
+            if (!/^[a-z0-9_]+$/.test(username)) { errEl.innerText = 'Letters, numbers, underscores only'; return; }
+            if (password.length < 6) { errEl.innerText = 'Password must be 6+ characters'; return; }
+            if (password !== confirm) { errEl.innerText = 'Passwords do not match'; return; }
+            if (hasAdmin()) { errEl.innerText = 'Admin account already exists'; return; }
+            const users = getUsers();
+            if (users[username]) { errEl.innerText = 'Username already taken'; return; }
+            const hash = await hashPwd(password);
+            users[username] = { passwordHash: hash, balance: 10000, inventory: [], isAdmin: true };
+            saveUsers(users);
+            setSession(username);
+            loadUserData(username);
+            updateUI();
+            showGameUI();
+            renderBrowser();
+        }
+
+        window.addEventListener('beforeunload', function() { saveUserData(); });
+
+        function getItemWidth() {
+            return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--reel-item-width')) || 220;
+        }
+
+        const loadedImages = {};
+        for (let key in IMAGES) {
+            let img = new Image();
+            img.onload = () => loadedImages[key] = true;
+            img.onerror = () => loadedImages[key] = false;
+            img.src = IMAGES[key];
+        }
+
+        function updateUI() {
+            document.getElementById('bal-display').innerText = fmt(balance);
+            document.getElementById('inv-count').innerText = inventory.length;
+            renderInventory();
+            saveUserData();
+        }
+
+        function showPage(pageId) {
+            if (isSpinning) return;
+            if (pageId === 'admin') {
+                const users = getUsers();
+                if (!currentUser || !users[currentUser] || !users[currentUser].isAdmin) return;
+                renderAdminPanel();
+            }
+            if (pageId === 'battles') { renderBattleLobby(); startBattlePoll(); }
+            else if (pageId === 'create-battle') { initCreatePage(); stopBattlePoll(); }
+            else if (pageId === 'battle-room') { startBattlePoll(); }
+            else if (pageId === 'coinflip') { renderCoinflipPage(); startBattlePoll(); }
+            else if (pageId === 'coinflip-room') { renderCfRoom(); startBattlePoll(); }
+            else if (pageId === 'blackjack') { stopBattlePoll(); cancelBattleAnim(); renderBlackjackPage(); }
+            else { stopBattlePoll(); cancelBattleAnim(); }
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            var el = document.getElementById('page-' + pageId);
+            if (el) el.classList.add('active');
+            if (pageId === 'battle-room') { renderBattleRoom(); }
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            if (document.getElementById('nav-' + pageId)) document.getElementById('nav-' + pageId).classList.add('active');
+            if (pageId === 'create-battle' || pageId === 'battle-room') {
+                var nb = document.getElementById('nav-battles'); if (nb) nb.classList.add('active');
+            }
+            if (pageId === 'coinflip-room') {
+                var nc = document.getElementById('nav-coinflip'); if (nc) nc.classList.add('active');
+            }
+            if (pageId === 'battle-room' && activeBattleId) location.hash = 'battle-room/' + activeBattleId;
+            else if (pageId === 'coinflip-room' && activeCoinflipId) location.hash = 'coinflip-room/' + activeCoinflipId;
+            else location.hash = pageId;
+        }
+
+        function addBalance() { balance += 100; updateUI(); }
+
+        function toggleFastMode() {
+            fastMode = !fastMode;
+            document.getElementById('btn-fast').classList.toggle('active', fastMode);
+        }
+
+        function setButtonsState(disabled) {
+            document.getElementById('btn-open').disabled = disabled;
+            document.getElementById('btn-demo').disabled = disabled;
+            document.querySelectorAll('.qty-btn').forEach(btn => btn.disabled = disabled);
+        }
+
+        function changeQty(amount) {
+            if (isSpinning) return;
+            openQty = Math.max(1, Math.min(5, openQty + amount));
+            document.getElementById('qty-display').innerText = `x${openQty}`;
+            if (activeCase) { updateOpenButtonText(); populateIdleSpinnerLayout(); }
+        }
+
+        function updateOpenButtonText() {
+            const totalPrice = activeCase.price * openQty;
+            document.getElementById('btn-open').innerText = `Open for $${fmt(totalPrice)}`;
+        }
+
+        function createCSSPackHTML(c) {
+            let imagesHTML = '';
+            if (c.displayItems && c.displayItems.length > 0) {
+                imagesHTML = '<div class="pack-items-container">';
+                c.displayItems.forEach(imgKey => {
+                    imagesHTML += `<img src="${IMAGES[imgKey]}" class="pack-item-img" onerror="this.style.display='none'">`;
+                });
+                imagesHTML += '</div>';
+            }
+            return `
+                <div class="css-pack" style="--c1: ${c.c1}; --c2: ${c.c2};">
+                    <div class="pack-notch-left"></div>
+                    <div class="pack-notch-right"></div>
+                    ${imagesHTML}
+                    <div class="css-pack-inner"></div>
+                    <div class="css-pack-name">${c.name}</div>
+                </div>
+            `;
+        }
+
+        function renderImage(imgKey) {
+            if (!imgKey) return '';
+            if (loadedImages[imgKey] !== false) {
+                return `<img src="${IMAGES[imgKey]}" draggable="false">`;
+            } else {
+                return `<div class="fallback-red">MISSING FILE<br>${IMAGES[imgKey].split('/').pop()}</div>`;
+            }
+        }
+
+        function createSpinItemHTML(item) {
+            const priceText = item.isToken ? 'Gold Spin' : `$${fmt(item.price)}`;
+            return `
+                <div class="spin-item" style="--rarity: var(--${item.rarity})">
+                    ${renderImage(item.imgKey)}
+                    <div class="spin-item-info">
+                        <div class="spin-item-name">${item.name}</div>
+                        <div class="spin-item-price">${priceText}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBrowser() {
+            const grid = document.getElementById('browse-grid');
+            grid.innerHTML = '';
+            CASES.forEach(c => {
+                const card = document.createElement('div');
+                card.className = 'browse-card';
+                card.innerHTML = `${createCSSPackHTML(c)}<div class="price">$${fmt(c.price)}</div>`;
+                card.onclick = () => openCaseView(c);
+                grid.appendChild(card);
+            });
+        }
+
+        function openCaseView(c) {
+            activeCase = c;
+            openQty = 1;
+            document.getElementById('qty-display').innerText = `x1`;
+            showPage('opening');
+
+            document.getElementById('case-header-pack').innerHTML = createCSSPackHTML(c);
+            document.getElementById('case-header-name').innerText = `${c.name}`;
+            updateOpenButtonText();
+            document.getElementById('spin-result-msg').innerText = '';
+
+            // --- absolute odds for this case ---
+            const normalTotal = c.normal.reduce((a, [, w]) => a + w, 0);
+            const goldEntry = c.normal.find(e => e[0] === 'GOLD');
+            const goldProb = goldEntry ? goldEntry[1] / normalTotal : 0;
+            const goldTotal = c.gold.reduce((a, [, w]) => a + w, 0);
+
+            const probMap = {};
+            c.normal.forEach(([id, w]) => { if (id === 'GOLD') return; probMap[id] = (probMap[id] || 0) + w / normalTotal; });
+            c.gold.forEach(([id, w]) => { probMap[id] = (probMap[id] || 0) + goldProb * (w / goldTotal); });
+
+            const allItems = Object.keys(probMap).map(id => ({ ...ITEMS[id], id, absProb: probMap[id] * 100 }));
+            allItems.sort((a, b) => b.price - a.price);
+
+            const grid = document.getElementById('pack-grid');
+            grid.innerHTML = '';
+            allItems.forEach(item => {
+                let displayOdds = item.absProb < 1 ? item.absProb.toFixed(4) + '%' : item.absProb.toFixed(2) + '%';
+                grid.innerHTML += `
+                    <div class="grid-item" style="--rarity: var(--${item.rarity})">
+                        <div class="item-odds">${displayOdds}</div>
+                        ${renderImage(item.imgKey)}
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">$${fmt(item.price)}</div>
+                    </div>
+                `;
+            });
+
+            populateIdleSpinnerLayout();
+        }
+
+        // --- STACKED SPINNER SETUP (no center line, just arrows) ---
+        function populateIdleSpinnerLayout(forceQuantity = null) {
+            const stack = document.getElementById('spinners-stack');
+            stack.innerHTML = '';
+            activeReelTrackers = [];
+            const rowsToDraw = forceQuantity || openQty;
+
+            const idleIds = activeCase ? activeCase.normal.filter(e => e[0] !== 'GOLD').map(e => e[0]) : ['dirt', 'dollar', 'mousepad', 'usb'];
+
+            for (let q = 0; q < rowsToDraw; q++) {
+                const reelId = `reel-${q}`;
+                stack.innerHTML += `
+                    <div class="reel-container" id="container-${reelId}">
+                        <div class="center-triangle-top" id="arrow-top-${reelId}"></div>
+                        <div class="center-triangle-bottom" id="arrow-bot-${reelId}"></div>
+                        <div class="reel-track" id="track-${reelId}"></div>
+                    </div>
+                `;
+                const track = document.getElementById(`track-${reelId}`);
+                for (let i = 0; i < 15; i++) {
+                    const id = idleIds[Math.floor(Math.random() * idleIds.length)];
+                    track.innerHTML += createSpinItemHTML(getItem(id));
+                }
+            }
+        }
+
+        function trackActiveItemStacked(trackElem, containerElem, reelIndex, isAudioLeader) {
+            const containerRect = containerElem.getBoundingClientRect();
+            const centerPoint = containerRect.left + (containerRect.width / 2);
+            let currentActiveIndex = -1;
+            function loop() {
+                if (!isSpinning) return;
+                const items = trackElem.children;
+                for (let i = 0; i < items.length; i++) {
+                    const rect = items[i].getBoundingClientRect();
+                    if (rect.left <= centerPoint && rect.right >= centerPoint) {
+                        if (!items[i].classList.contains('active')) {
+                            for (let j = 0; j < items.length; j++) items[j].classList.remove('active');
+                            items[i].classList.add('active');
+                            if (currentActiveIndex !== i) { currentActiveIndex = i; if (isAudioLeader) playTick(); }
+                        }
+                        break;
+                    }
+                }
+                activeReelTrackers[reelIndex] = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // weighted draw from the active case's pool
+        function getDrop(caseObj, isDemo, isGoldPool) {
+            const base = isGoldPool ? caseObj.gold : caseObj.normal;
+            const entries = base.map(([id, w]) => {
+                let ww = w;
+                if (isDemo && !isGoldPool) { ww = (id === 'GOLD') ? w * 20 : w * 0.6; }
+                if (isDemo && isGoldPool && ITEMS[id] && ITEMS[id].rarity === 'legendary') ww = w * 5;
+                return [id, ww];
+            });
+            const total = entries.reduce((a, [, w]) => a + w, 0);
+            let rand = Math.random() * total;
+            for (const [id, w] of entries) {
+                if ((rand -= w) <= 0) return id === 'GOLD' ? goldToken() : getItem(id);
+            }
+            const last = entries[entries.length - 1][0];
+            return last === 'GOLD' ? goldToken() : getItem(last);
+        }
+
+        function runMultiReelAnimation(isDemo, isGoldPool, rowsToSpin, callback) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const stack = document.getElementById('spinners-stack');
+            const WIN_INDEX = 50;
+            const ITEM_WIDTH = getItemWidth();
+            const wheelsData = [];
+
+            for (let q = 0; q < rowsToSpin; q++) {
+                const reelId = `reel-${q}`;
+                const track = document.getElementById(`track-${reelId}`);
+                const container = document.getElementById(`container-${reelId}`);
+
+                document.getElementById(`arrow-top-${reelId}`).style.opacity = '1';
+                document.getElementById(`arrow-bot-${reelId}`).style.opacity = '1';
+                track.style.transition = 'none';
+                track.style.transform = 'translateX(0)';
+                track.innerHTML = '';
+
+                const items = [];
+                for (let i = 0; i < 70; i++) {
+                    let item = getDrop(activeCase, isDemo, isGoldPool);
+                    // near-miss tease: a Gold Spin right beside the winning slot
+                    if (!isGoldPool && (i === WIN_INDEX - 1 || i === WIN_INDEX + 1) && Math.random() < 0.7) item = goldToken();
+                    items.push(item);
+                }
+                const wonItem = getDrop(activeCase, isDemo, isGoldPool);
+                items[WIN_INDEX] = wonItem;
+
+                items.forEach(item => { track.innerHTML += createSpinItemHTML(item); });
+                wheelsData.push({ track, container, wonItem, reelId });
+            }
+
+            void stack.offsetHeight;
+
+            const duration = fastMode ? 1000 : 4500;
+
+            wheelsData.forEach((wheel, index) => {
+                const containerWidth = wheel.container.offsetWidth;
+                const randomOffset = (Math.random() * (ITEM_WIDTH * 0.5)) - (ITEM_WIDTH * 0.25);
+                const stopPointWithOffset = (WIN_INDEX * ITEM_WIDTH) - (containerWidth / 2) + (ITEM_WIDTH / 2) + randomOffset;
+                wheel.track.style.transition = `transform ${duration}ms cubic-bezier(0.1, 0.8, 0.1, 1)`;
+                wheel.track.style.transform = `translateX(-${stopPointWithOffset}px)`;
+                trackActiveItemStacked(wheel.track, wheel.container, index, index === 0);
+            });
+
+            setTimeout(() => {
+                wheelsData.forEach((wheel) => {
+                    const containerWidth = wheel.container.offsetWidth;
+                    const exactCenterPoint = (WIN_INDEX * ITEM_WIDTH) - (containerWidth / 2) + (ITEM_WIDTH / 2);
+                    wheel.track.style.transition = `transform 0.4s ease-in-out`;
+                    wheel.track.style.transform = `translateX(-${exactCenterPoint}px)`;
+                });
+
+                setTimeout(() => {
+                    activeReelTrackers.forEach(id => cancelAnimationFrame(id));
+                    const wonItemsList = [];
+                    wheelsData.forEach((wheel) => {
+                        const domItems = wheel.track.children;
+                        for (let i = 0; i < domItems.length; i++) {
+                            if (i !== WIN_INDEX) { domItems[i].style.opacity = '0'; domItems[i].classList.remove('active'); }
+                            else { domItems[i].classList.remove('active'); domItems[i].classList.add('winner'); }
+                        }
+                        document.getElementById(`arrow-top-${wheel.reelId}`).style.opacity = '0';
+                        document.getElementById(`arrow-bot-${wheel.reelId}`).style.opacity = '0';
+                        wonItemsList.push(wheel.wonItem);
+                    });
+                    playWin();
+                    callback(wonItemsList);
+                }, 400);
+            }, duration);
+        }
+
+        function roll(isDemo) {
+            if (isSpinning || !activeCase) return;
+            const totalPackCost = activeCase.price * openQty;
+            if (!isDemo && balance < totalPackCost) return alert("Insufficient Balance!");
+
+            isSpinning = true;
+            setButtonsState(true);
+            document.getElementById('spin-result-msg').innerText = '';
+
+            if (!isDemo) { balance -= totalPackCost; updateUI(); }
+
+            populateIdleSpinnerLayout(openQty);
+            void document.getElementById('spinners-stack').offsetHeight;
+
+            // Phase 1: Normal Spin
+            runMultiReelAnimation(isDemo, false, openQty, (wonItems) => {
+                const goldTokensHit = wonItems.filter(item => item.isToken).length;
+
+                if (goldTokensHit > 0) {
+                    // no "gold spin" text — just keep normal wins, then run the gold reel
+                    if (!isDemo) {
+                        wonItems.forEach(item => { if (!item.isToken) inventory.push(item); });
+                        updateUI();
+                    }
+                    setTimeout(() => {
+                        populateIdleSpinnerLayout(goldTokensHit);
+                        void document.getElementById('spinners-stack').offsetHeight;
+
+                        // Phase 2: Gold Spin (premium pool only)
+                        runMultiReelAnimation(isDemo, true, goldTokensHit, (goldItems) => {
+                            if (!isDemo) goldItems.forEach(gi => inventory.push(gi));
+                            updateUI();
+                            setTimeout(() => {
+                                isSpinning = false;
+                                setButtonsState(false);
+                                populateIdleSpinnerLayout();
+                            }, 2200);
+                        });
+                    }, 1200);
+                } else {
+                    if (!isDemo) wonItems.forEach(item => inventory.push(item));
+                    updateUI();
+                    isSpinning = false;
+                    setButtonsState(false);
+                }
+            });
+        }
+
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            inventory.forEach((item, idx) => {
+                grid.innerHTML += `
+                    <div class="grid-item sellable" style="--rarity: var(--${item.rarity});" onclick="sellItem(${idx})">
+                        <div class="item-odds" style="color:var(--btn-open-bg); font-weight: 800;"></div>
+                        ${renderImage(item.imgKey)}
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">$${fmt(item.price)}</div>
+                    </div>
+                `;
+            });
+        }
+        // ===== CASE BATTLES (Socket.io + Vertical Reels) =====
+        const socket = typeof io !== 'undefined' ? io() : null;
+        let activeBattleId = null;
+        let battleAnimating = false;
+        let battleAnimToken = {cancelled:false};
+        let lobbyCache = [];
+        let cfLobbyCache = [];
+        let roomStateCache = null;
+        let createState = {cases:[],format:'1v1',scoring:'normal',quick:false};
+        let cfState = {amount:5,side:'heads'};
+        function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+        function cancelBattleAnim(){battleAnimToken.cancelled=true;battleAnimating=false;}
+
+        if(socket){
+            socket.on('lobby:update',function(list){lobbyCache=list;const el=document.getElementById('battles-list');if(el&&document.getElementById('page-battles').classList.contains('active'))renderBattleLobby();});
+            socket.on('battle:state',function(b){roomStateCache=b;if(activeBattleId===b.id&&!battleAnimating){const el=document.getElementById('battle-room-content');if(el)renderBattleRoom();}});
+            socket.on('battle:disbanded',function(d){if(activeBattleId===d.battleId){activeBattleId=null;showPage('battles');}});
+            socket.on('coinflip:lobby',function(list){cfLobbyCache=list;renderCoinflipList();});
+            socket.on('coinflip:state',function(cf){renderCoinflipActive(cf);renderCoinflipList();});
+        }
+
+        // --- Case Selector Modal ---
+        function openCaseModal(){
+            const grid=document.getElementById('case-modal-grid');
+            grid.innerHTML=CASES.map(c=>{
+                return`<div class="case-modal-card" onclick="addCaseToBattle('${c.id}')">
+                    <div class="cmc-pack">${createCSSPackHTML(c)}</div>
+                    <div class="cmc-name">${c.name}</div><div class="cmc-price">$${fmt(c.price)}</div></div>`;
+            }).join('');
+            document.getElementById('case-select-modal').style.display='flex';
+        }
+        function closeCaseModal(){document.getElementById('case-select-modal').style.display='none';}
+
+        // --- Create Battle UI ---
+        function initCreatePage(){
+            createState={cases:[],format:'1v1',scoring:'normal',quick:false};
+            renderCreateOptions();renderCreateCases();updateCreateTotal();
+        }
+        function renderCreateOptions(){
+            const fmts=['1v1','1v1v1','1v1v1v1','2v2','3v3'];
+            document.getElementById('create-format-opts').innerHTML=fmts.map(f=>`<div class="create-opt ${createState.format===f?'active':''}" onclick="setCreateFormat('${f}')">${f}</div>`).join('');
+            const scores=[['normal','Normal'],['crazy','Crazy'],['terminal','Terminal']];
+            document.getElementById('create-scoring-opts').innerHTML=scores.map(([id,l])=>`<div class="create-opt ${createState.scoring===id?'active':''}" onclick="setCreateScoring('${id}')">${l}</div>`).join('');
+            document.getElementById('toggle-quick').classList.toggle('on',createState.quick);
+        }
+        function setCreateFormat(f){createState.format=f;renderCreateOptions();}
+        function setCreateScoring(s){createState.scoring=s;renderCreateOptions();}
+        function toggleCreateQuick(){createState.quick=!createState.quick;renderCreateOptions();}
+        function addCaseToBattle(caseId){if(createState.cases.length>=10)return;createState.cases.push(caseId);renderCreateCases();updateCreateTotal();}
+        function removeCaseFromBattle(idx){createState.cases.splice(idx,1);renderCreateCases();updateCreateTotal();}
+
+        function renderCreateCases(){
+            const sel=document.getElementById('selected-cases');if(!sel)return;
+            const packs=createState.cases.map((cId,idx)=>{
+                const c=CASES.find(x=>x.id===cId);if(!c)return'';
+                return`<div class="selected-pack-css" title="Click × to remove">
+                    <span class="spc-remove" onclick="event.stopPropagation();removeCaseFromBattle(${idx})">×</span>
+                    <div class="spc-pack">${createCSSPackHTML(c)}</div>
+                    <div class="spc-price">$${fmt(c.price)}</div>
+                </div>`;
+            }).join('');
+            sel.innerHTML=`<div class="selected-packs-wrap">${packs}
+                <div class="add-packs-box" onclick="openCaseModal()">
+                    <div class="apb-plus">+</div><div class="apb-text">Add Packs</div>
+                </div></div>`;
+        }
+        function updateCreateTotal(){
+            const total=createState.cases.reduce((s,cId)=>{const c=CASES.find(x=>x.id===cId);return s+(c?c.price:0);},0);
+            document.getElementById('create-total').innerText=`Total: $${fmt(total)} per player`;
+            const btn=document.getElementById('create-battle-btn');
+            if(createState.cases.length>0){btn.disabled=false;btn.innerText=`Create Battle — $${fmt(total)}`;}
+            else{btn.disabled=true;btn.innerText='Select at least 1 case';}
+        }
+
+        // --- Create / Join / Leave ---
+        function createBattleAction(){
+            if(!currentUser||!createState.cases.length)return;
+            if(!socket||!socket.connected){alert('Not connected to server. Please refresh the page.');return;}
+            const total=createState.cases.reduce((s,cId)=>{const c=CASES.find(x=>x.id===cId);return s+(c?c.price:0);},0);
+            if(balance<total){alert('Insufficient balance!');return;}
+            var btn=document.getElementById('create-battle-btn');if(btn)btn.disabled=true;
+            socket.emit('battle:create',{username:currentUser,format:createState.format,scoring:createState.scoring,cases:[...createState.cases],quickMode:createState.quick},function(res){
+                if(!res.ok){alert(res.msg);if(btn)btn.disabled=false;return;}
+                balance-=res.totalCost;updateUI();
+                activeBattleId=res.battleId;roomStateCache=res.battle;
+                socket.emit('battle:watch',{battleId:res.battleId});
+                showPage('battle-room');
+            });
+        }
+        function joinBattle(bid){
+            if(!currentUser||!socket)return;
+            const b=lobbyCache.find(x=>x.id===bid);if(b&&balance<b.totalCost){alert('Insufficient balance!');return;}
+            socket.emit('battle:join',{battleId:bid,username:currentUser},function(res){
+                if(!res.ok){alert(res.msg);return;}balance-=res.totalCost;updateUI();activeBattleId=bid;roomStateCache=res.battle;showPage('battle-room');
+            });
+        }
+        function leaveBattleAction(bid){
+            if(!socket)return;
+            socket.emit('battle:leave',{battleId:bid,username:currentUser},function(res){if(res.refund){balance+=res.refund;updateUI();}activeBattleId=null;roomStateCache=null;showPage('battles');});
+        }
+        function leaveBattleRoom(){
+            if(roomStateCache&&roomStateCache.status==='waiting'&&roomStateCache.players.includes(currentUser)){leaveBattleAction(activeBattleId);}
+            else{cancelBattleAnim();activeBattleId=null;roomStateCache=null;showPage('battles');}
+        }
+        function addBotToSlot(bid){if(socket)socket.emit('battle:addBot',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
+        function fillAllBots(bid){if(socket)socket.emit('battle:fillBots',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
+        function manualStartBattle(bid){if(socket)socket.emit('battle:start',{battleId:bid,username:currentUser},function(r){if(!r.ok)alert(r.msg);});}
+        function watchBattle(bid){
+            activeBattleId=bid;
+            var cached=lobbyCache.find(function(b){return b.id===bid;});
+            // Only use the lobby summary if it carries full results; otherwise wait
+            // for the authoritative battle:watch response (avoids a blank finished view).
+            roomStateCache=(cached&&(cached.status!=='finished'||cached.results))?cached:null;
+            if(socket)socket.emit('battle:watch',{battleId:bid},function(res){
+                if(res&&res.battle){roomStateCache=res.battle;if(activeBattleId===bid&&!battleAnimating&&document.getElementById('page-battle-room').classList.contains('active'))renderBattleRoom();}
+            });
+            showPage('battle-room');
+        }
+
+        // --- Render Lobby ---
+        function renderBattleLobby(){
+            const list=document.getElementById('battles-list');if(!list)return;
+            if(socket)socket.emit('lobby:refresh');
+            if(!lobbyCache.length){list.innerHTML='<div class="battle-empty">No active battles — create one!</div>';return;}
+            list.innerHTML=lobbyCache.map(b=>{
+                const canJoin=b.status==='waiting'&&!b.players.includes(currentUser)&&b.players.length<b.maxPlayers;
+                const canView=true;
+                const sl=b.status==='waiting'?'Waiting':b.status==='playing'?'In Progress':'Finished';
+                const packPreview=b.cases.slice(0,4).map(cId=>{const c=CASES.find(x=>x.id===cId);return c?`<div class="pack-pick-mini">${createCSSPackHTML(c)}</div>`:'';}).join('');
+                return`<div class="battle-card">
+                    <div style="display:flex;gap:0.25rem;flex-shrink:0;align-items:center;">${packPreview}${b.cases.length>4?`<span style="color:var(--text-muted);font-size:0.8rem;font-weight:700;">+${b.cases.length-4}</span>`:''}</div>
+                    <div style="flex:1;min-width:0;">
+                    <div class="battle-card-creator">${getAvatarHTML(b.creator)}${b.creator}'s Battle
+                        <span class="battle-mode-badge mode-${b.scoring||'normal'}">${b.scoring||'Normal'}</span>
+                        <span class="battle-mode-badge" style="background:rgba(255,255,255,0.06);color:var(--text-main);">${b.format||'1v1'}</span>
+                        ${b.quickMode?' <span class="battle-mode-badge" style="background:rgba(250,204,21,0.15);color:#facc15;">Quick</span>':''}
+                    </div>
+                    <div class="battle-card-details">${b.cases.length} case${b.cases.length!==1?'s':''} · $${fmt(b.totalCost)} · ${b.players.length}/${b.maxPlayers} players · ${sl}</div>
+                </div><div class="battle-card-right">
+                    ${canJoin?`<button class="btn-open" style="padding:0 1.1rem;height:36px;font-size:0.88rem;" onclick="joinBattle('${b.id}')">Join $${fmt(b.totalCost)}</button>`:''}
+                    ${canView?`<button class="btn-demo" style="padding:0 1rem;height:36px;font-size:0.88rem;" onclick="watchBattle('${b.id}')">View</button>`:''}
+                </div></div>`;
+            }).join('');
+        }
+
+        // --- Render Battle Room ---
+        function renderBattleRoom(){
+            const b=roomStateCache;const ct=document.getElementById('battle-room-content');if(!ct)return;
+            if(!b){ct.innerHTML='<div class="battle-empty">Connecting...</div>';return;}
+            const bfmt=b.format||'1v1';const isTeam=!!b.isTeam;const ts=b.teamSize||0;
+
+            if(b.status==='waiting'){
+                const isCr=b.creator===currentUser;
+                const firstWaitCase=CASES.find(c=>c.id===b.cases[0]);
+                const allFilled=b.players.length>=b.maxPlayers;
+                const np=b.maxPlayers;
+                const modeCls=(b.scoring||'normal')==='crazy'?'mode-crazy':(b.scoring||'normal')==='terminal'?'mode-terminal':'mode-normal';
+                ct.innerHTML=`
+                <div class="battle-topbar">
+                    <span class="bt-mode ${modeCls}">${(b.scoring||'normal').toUpperCase()}</span>
+                    <div class="bt-cases" id="bt-cases">${b.cases.map((ci,idx)=>{const c=CASES.find(x=>x.id===ci);
+                        return`<div class="bt-case-thumb has-pack${idx===0?' current':''}" id="bt-case-${idx}" title="${c?c.name:ci}">${c?createCSSPackHTML(c):''}</div>`;}).join('')}</div>
+                    <div class="bt-info">
+                        <div class="bt-round">Waiting ${b.players.length}/${b.maxPlayers}</div>
+                        <div class="bt-casename">${firstWaitCase?firstWaitCase.name:''}</div>
+                        <div class="bt-price">${firstWaitCase?'$'+fmt(firstWaitCase.price):''}</div>
+                        <div class="bt-cost">Total: $${fmt(b.totalCost)}</div>
+                    </div>
+                </div>
+                ${isTeam?`<div style="display:flex;justify-content:space-around;margin-bottom:0.4rem;font-weight:700;font-size:0.82rem;"><span style="color:#3b82f6;">Team 1</span><span style="color:#ef4444;">Team 2</span></div>`:''}
+                <div class="battle-arena" id="battle-arena" style="grid-template-columns:repeat(${np},1fr);">
+                    ${Array.from({length:np},(_,i)=>{const p=b.players[i];const ib=p&&p.startsWith('Bot_');
+                        const tc=isTeam?(i<ts?'box-shadow:inset 0 3px 0 #3b82f6;':'box-shadow:inset 0 3px 0 #ef4444;'):'';
+                        if(p){
+                            return`<div class="arena-col" style="${tc}">
+                                <div class="arena-stage" style="display:flex;align-items:center;">${buildReelPreview(firstWaitCase,false)}</div>
+                                <div class="arena-playerbar">
+                                    ${getAvatarHTML(p,'arena-pb-avatar')}
+                                    <div class="arena-pb-meta"><div class="arena-pb-name">${p}${ib?' <span class="bot-tag">BOT</span>':''}</div></div>
+                                </div>
+                            </div>`;
+                        }
+                        const addBtn=isCr?`<button class="btn-demo" style="padding:0.3rem 0.8rem;font-size:0.78rem;" onclick="addBotToSlot('${b.id}')">+ Bot</button>`:'';
+                        return`<div class="arena-col" style="${tc}">
+                            <div class="arena-stage" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;opacity:0.45;">
+                                <div style="font-size:0.95rem;font-weight:800;color:var(--text-muted);">Empty</div>
+                                ${addBtn}
+                            </div>
+                            <div class="arena-playerbar">
+                                ${getAvatarHTML('?','arena-pb-avatar')}
+                                <div class="arena-pb-meta"><div class="arena-pb-name" style="color:var(--text-muted);">Empty</div></div>
+                            </div>
+                        </div>`;}).join('')}
+                </div>
+                <div class="battle-history" id="battle-history" style="grid-template-columns:repeat(${Math.min(np,4)},1fr);">
+                    ${Array.from({length:np},(_,i)=>{const p=b.players[i];const ib=p&&p.startsWith('Bot_');
+                        return`<div class="history-col"><div class="history-col-head">${getAvatarHTML(p||'?')}<span>${p?(p+(ib?' (Bot)':'')):'Empty'}</span></div><div class="history-items"></div></div>`;}).join('')}
+                </div>
+                <div style="text-align:center;margin-top:1rem;">
+                    ${isCr?`<button class="btn-demo" style="margin-right:0.5rem;" onclick="fillAllBots('${b.id}')">Fill Bots</button>`:''}
+                    ${isCr&&allFilled?`<button class="btn-open" onclick="manualStartBattle('${b.id}')">Start Battle</button>`:''}
+                    ${isCr&&!allFilled?`<span style="color:var(--text-muted);font-size:0.82rem;margin-right:0.5rem;">Fill all ${b.maxPlayers} spots to start</span>`:''}
+                    ${!b.players.includes(currentUser)&&b.players.length<b.maxPlayers?`<button class="btn-open" onclick="joinBattle('${b.id}')">Join $${fmt(b.totalCost)}</button>`:''}
+                    ${b.players.includes(currentUser)?`<button class="btn-demo" style="margin-left:0.5rem;" onclick="leaveBattleAction('${b.id}')">Leave</button>`:''}
+                </div>`;return;
+            }
+
+            if(b.status==='playing'||b.status==='finished'){
+                const np=b.players.length;
+                const modeCls=(b.scoring||'normal')==='crazy'?'mode-crazy':(b.scoring||'normal')==='terminal'?'mode-terminal':'mode-normal';
+                const firstCase=CASES.find(c=>c.id===b.cases[0]);
+                ct.innerHTML=`
+                <div class="battle-topbar">
+                    <span class="bt-mode ${modeCls}">${(b.scoring||'normal').toUpperCase()}</span>
+                    <div class="bt-cases" id="bt-cases">${b.cases.map((ci,idx)=>{const c=CASES.find(x=>x.id===ci);
+                        return`<div class="bt-case-thumb has-pack${idx===0?' current':''}" id="bt-case-${idx}" title="${c?c.name:ci}">${c?createCSSPackHTML(c):''}</div>`;}).join('')}</div>
+                    <div class="bt-info">
+                        <div class="bt-round" id="bt-round">Round 1/${b.cases.length}</div>
+                        <div class="bt-casename" id="bt-casename">${firstCase?firstCase.name:''}</div>
+                        <div class="bt-price" id="bt-caseprice">${firstCase?'$'+fmt(firstCase.price):''}</div>
+                        <div class="bt-cost">Total: $${fmt(b.totalCost)}</div>
+                    </div>
+                </div>
+                ${isTeam?`<div style="display:flex;justify-content:space-around;margin-bottom:0.4rem;font-weight:700;font-size:0.82rem;"><span style="color:#3b82f6;">Team 1</span><span style="color:#ef4444;">Team 2</span></div>`:''}
+                <div class="battle-arena" id="battle-arena" style="grid-template-columns:repeat(${np},1fr);">
+                    ${b.players.map((p,i)=>{const ib=p.startsWith('Bot_');const tc=isTeam?(i<ts?'box-shadow:inset 0 3px 0 #3b82f6;':'box-shadow:inset 0 3px 0 #ef4444;'):'';
+                        return`<div class="arena-col" id="ac-${i}" style="${tc}">
+                            <div class="arena-stage" id="as-${i}">
+                                <div class="arena-arrow-l" id="aal-${i}"></div>
+                                <div class="arena-arrow-r" id="aar-${i}"></div>
+                                <div class="arena-reel-track" id="art-${i}"></div>
+                            </div>
+                            <div class="arena-playerbar">
+                                ${getAvatarHTML(p,'arena-pb-avatar')}
+                                <div class="arena-pb-meta"><div class="arena-pb-name">${p}${ib?' <span class="bot-tag">BOT</span>':''}</div></div>
+                                <div class="arena-pb-total" id="bt-${i}">$0.00</div>
+                            </div>
+                        </div>`;}).join('')}
+                </div>
+                <div class="battle-history" id="battle-history" style="grid-template-columns:repeat(${Math.min(np,4)},1fr);">
+                    ${b.players.map((p,i)=>{const ib=p.startsWith('Bot_');
+                        return`<div class="history-col"><div class="history-col-head">${getAvatarHTML(p)}<span>${p}${ib?' (Bot)':''}</span></div><div class="history-items" id="hist-${i}"></div></div>`;}).join('')}
+                </div>
+                <div style="text-align:center;margin-top:1rem;"><button class="btn-demo" onclick="cancelBattleAnim();activeBattleId=null;roomStateCache=null;showPage('battles')">Back to Lobby</button></div>`;
+                if(b.status==='playing'&&!battleAnimating)playBattleAnimation(b);
+                else if(b.status==='finished')showBattleFinal(b);
+            }
+        }
+
+        // --- Tease pool builder: high-rarity + gold tokens mixed in ---
+        function buildTeasePool(caseObj){
+            const base=caseObj?caseObj.normal.filter(([id])=>id!=='GOLD').map(([id])=>getItem(id)):[];
+            const hype=[];
+            if(caseObj){
+                caseObj.gold.forEach(([id])=>{const it=ITEMS[id];if(it&&(it.rarity==='epic'||it.rarity==='legendary'))hype.push(getItem(id));});
+                base.forEach(it=>{if(it.rarity==='epic'||it.rarity==='legendary')hype.push(it);});
+            }
+            return {base:base.length?base:[getItem('dirt')],hype:hype.length?hype:[goldToken()]};
+        }
+        // ~30% of cycles show a tease (gold token or epic/legendary)
+        function pickCycleItem(teasePool){
+            if(Math.random()<0.30){
+                if(Math.random()<0.4)return goldToken();
+                return teasePool.hype[Math.floor(Math.random()*teasePool.hype.length)];
+            }
+            return teasePool.base[Math.floor(Math.random()*teasePool.base.length)];
+        }
+        function createArenaSpinItem(item){
+            const priceText=item.isToken?'Gold Spin':'$'+fmt(item.price);
+            const src=IMAGES[item.imgKey];
+            return'<div class="arena-spin-item" style="--rarity:var(--'+item.rarity+')">'+
+                (src?'<img src="'+src+'" draggable="false" onerror="this.style.display=\'none\'">':'<div class="arena-item-fallback"></div>')+
+                '<div class="arena-spin-item-info"><div class="arena-spin-item-name">'+item.name+'</div><div class="arena-spin-item-price">'+priceText+'</div></div></div>';
+        }
+        var ARENA_ITEM_H=90;
+
+        // Static (non-animated) vertical reel preview shown in the waiting room.
+        // Builds a short track from the case's item pool, centered on a random item.
+        function buildReelPreview(caseObj,dim){
+            const pool=caseObj?caseObj.normal.filter(([id])=>id!=='GOLD').map(([id])=>getItem(id)):[getItem('dirt')];
+            const safePool=pool.length?pool:[getItem('dirt')];
+            const COUNT=7;
+            const items=[];
+            for(let i=0;i<COUNT;i++)items.push(safePool[Math.floor(Math.random()*safePool.length)]);
+            // pick a random "centered" item — give it a glow only (no name/price text)
+            const centerIdx=Math.floor(COUNT/2);
+            let html='';
+            items.forEach((it,i)=>{
+                const node=createArenaSpinItem(it).replace('class="arena-spin-item"',i===centerIdx?'class="arena-spin-item active"':'class="arena-spin-item"');
+                html+=node;
+            });
+            // offset the track so the centered item sits in the visible middle (~200px tall preview, 90px items)
+            const offset=(centerIdx*ARENA_ITEM_H)-(200/2)+(ARENA_ITEM_H/2);
+            return`<div class="reel-preview"${dim?' style="opacity:0.45;"':''}><div class="arena-reel-track" style="transform:translateY(-${offset}px);">${html}</div></div>`;
+        }
+
+        // --- New Battle Animation (item cycling / tease) ---
+        async function playBattleAnimation(battle){
+            battleAnimating=true;
+            const token={cancelled:false};battleAnimToken=token;
+            if(!battle.quickMode)await showCountdown(token);
+            if(token.cancelled){battleAnimating=false;return;}
+
+            for(let round=0;round<battle.cases.length;round++){
+                if(token.cancelled){battleAnimating=false;return;}
+                const cId=battle.cases[round];const cObj=CASES.find(c=>c.id===cId);
+                // top bar updates
+                const rEl=document.getElementById('bt-round');if(rEl)rEl.innerText=`Round ${round+1}/${battle.cases.length}`;
+                const cnEl=document.getElementById('bt-casename');if(cnEl)cnEl.innerText=cObj?cObj.name:cId;
+                const cpEl=document.getElementById('bt-caseprice');if(cpEl)cpEl.innerText=cObj?'$'+fmt(cObj.price):'';
+                battle.cases.forEach((_,idx)=>{const t=document.getElementById('bt-case-'+idx);if(t){t.classList.remove('current','done');if(idx<round)t.classList.add('done');else if(idx===round)t.classList.add('current');}});
+
+                const teasePool=buildTeasePool(cObj);
+
+                const proms=battle.players.map((p,pi)=>new Promise(resolve=>{
+                    if(token.cancelled||!battle.results||!battle.results[p]){resolve();return;}
+                    const winItem=battle.results[p].items[round].item;
+                    spinArenaReel(pi,teasePool,winItem,battle.quickMode,token,pi===0,resolve);
+                }));
+                await Promise.all(proms);
+                if(token.cancelled){battleAnimating=false;return;}
+
+                // append to history + update totals
+                battle.players.forEach((p,pi)=>{
+                    if(!battle.results||!battle.results[p])return;
+                    const winItem=battle.results[p].items[round].item;
+                    addHistoryItem(pi,winItem);
+                    const scoring=battle.scoring||'normal';
+                    let total;
+                    if(scoring==='terminal')total=winItem.price;
+                    else total=battle.results[p].items.slice(0,round+1).reduce((s,r)=>s+r.item.price,0);
+                    const el=document.getElementById('bt-'+pi);if(el)el.innerText='$'+fmt(total);
+                });
+                if(round<battle.cases.length-1)await sleep(battle.quickMode?250:900);
+            }
+            if(token.cancelled){battleAnimating=false;return;}
+            if(socket)socket.emit('battle:finished',{battleId:battle.id});
+            if(battle.winner&&!battle.winner.startsWith('Bot_')&&battle.winner===currentUser){
+                const allItems=[];battle.players.forEach(p=>{if(battle.results[p])battle.results[p].items.forEach(r=>allItems.push(r.item));});
+                inventory=inventory.concat(allItems);updateUI();
+            }
+            await sleep(500);if(!token.cancelled)showBattleFinal(battle);
+            battleAnimating=false;
+        }
+
+        function addHistoryItem(pi,item){
+            const grid=document.getElementById('hist-'+pi);if(!grid)return;
+            const src=IMAGES[item.imgKey];
+            const cell=document.createElement('div');
+            cell.className='history-cell';
+            cell.style.setProperty('--rarity','var(--'+item.rarity+')');
+            cell.innerHTML=(src?`<img src="${src}" onerror="this.outerHTML='<div class=&quot;history-cell-fallback&quot;></div>'">`:'<div class="history-cell-fallback"></div>')+
+                `<div class="history-cell-name">${item.name}</div><div class="history-cell-price">$${fmt(item.price)}</div>`;
+            grid.appendChild(cell);
+        }
+
+        function spinArenaReel(pi,teasePool,winItem,quick,token,isLeader,callback){
+            const track=document.getElementById('art-'+pi);
+            const container=document.getElementById('as-'+pi);
+            const arL=document.getElementById('aal-'+pi);
+            const arR=document.getElementById('aar-'+pi);
+            if(!track||!container){callback();return;}
+
+            track.style.transition='none';
+            track.style.transform='translateY(0)';
+            track.innerHTML='';
+
+            const WIN_IDX=35;
+            for(let i=0;i<50;i++){
+                let item;
+                if(i===WIN_IDX) item=winItem;
+                else if(i===WIN_IDX-1||i===WIN_IDX+1) item=Math.random()<0.5?goldToken():pickCycleItem(teasePool);
+                else item=pickCycleItem(teasePool);
+                track.innerHTML+=createArenaSpinItem(item);
+            }
+
+            if(arL)arL.style.opacity='1';
+            if(arR)arR.style.opacity='1';
+            void track.offsetHeight;
+
+            const ch=container.offsetHeight;
+            const duration=quick?1200:3800;
+            const randomOff=(Math.random()*ARENA_ITEM_H*0.4)-(ARENA_ITEM_H*0.2);
+            const stopY=(WIN_IDX*ARENA_ITEM_H)-(ch/2)+(ARENA_ITEM_H/2)+randomOff;
+
+            track.style.transition='transform '+duration+'ms cubic-bezier(0.1,0.8,0.1,1)';
+            track.style.transform='translateY(-'+stopY+'px)';
+
+            const centerY=container.getBoundingClientRect().top+(ch/2);
+            let curActive=-1;
+            function trackLoop(){
+                if(token.cancelled)return;
+                const els=track.children;
+                for(let i=0;i<els.length;i++){
+                    const r=els[i].getBoundingClientRect();
+                    if(r.top<=centerY&&r.bottom>=centerY){
+                        if(!els[i].classList.contains('active')){
+                            for(let j=0;j<els.length;j++)els[j].classList.remove('active');
+                            els[i].classList.add('active');
+                            if(curActive!==i){curActive=i;if(isLeader)playTick();}
+                        }
+                        break;
+                    }
+                }
+                requestAnimationFrame(trackLoop);
+            }
+            trackLoop();
+
+            setTimeout(function(){
+                if(token.cancelled){callback();return;}
+                const exactY=(WIN_IDX*ARENA_ITEM_H)-(ch/2)+(ARENA_ITEM_H/2);
+                track.style.transition='transform 0.4s ease-in-out';
+                track.style.transform='translateY(-'+exactY+'px)';
+                setTimeout(function(){
+                    if(token.cancelled){callback();return;}
+                    const els=track.children;
+                    for(let i=0;i<els.length;i++){
+                        if(i!==WIN_IDX){els[i].style.opacity='0';els[i].classList.remove('active');}
+                        else{els[i].classList.remove('active');els[i].classList.add('winner');}
+                    }
+                    if(arL)arL.style.opacity='0';
+                    if(arR)arR.style.opacity='0';
+                    if(isLeader)playWin();
+                    callback();
+                },400);
+            },duration);
+        }
+
+        function showBattleFinal(battle){
+            if(!battle.results)return;
+            const isTeam=!!battle.isTeam;const ts=battle.teamSize||0;
+            const wIdx=battle.players.indexOf(battle.winner);
+            const wTeam=isTeam&&ts>0?(wIdx<ts?0:1):-1;
+
+            // Fill history and totals
+            battle.players.forEach((p,i)=>{
+                if(!battle.results[p])return;
+                const items=battle.results[p].items||[];
+                const grid=document.getElementById('hist-'+i);
+                if(grid&&grid.children.length===0){items.forEach(r=>addHistoryItem(i,r.item));}
+                const tel=document.getElementById('bt-'+i);if(tel)tel.innerText='$'+fmt(battle.results[p].totalValue||0);
+                const col=document.getElementById('ac-'+i);
+                if(col){
+                    const isW=isTeam&&ts>0?((i<ts?0:1)===wTeam):(p===battle.winner);
+                    col.classList.toggle('is-winner',isW);
+                }
+            });
+
+            // Top bar: mark complete
+            battle.cases.forEach((_,idx)=>{const t=document.getElementById('bt-case-'+idx);if(t){t.classList.remove('current');t.classList.add('done');}});
+            const rEl=document.getElementById('bt-round');if(rEl)rEl.innerText='Complete';
+
+            // Replace each player's reel with winner result inline
+            const isBot=battle.winner&&battle.winner.startsWith('Bot_');
+            const winName=battle.winner||'Unknown';
+            const wVal=(battle.results[battle.winner]&&battle.results[battle.winner].totalValue)||battle.winnerValue||0;
+
+            battle.players.forEach((p,i)=>{
+                const stage=document.getElementById('as-'+i);
+                if(!stage)return;
+                const isW=isTeam&&ts>0?((i<ts?0:1)===wTeam):(p===battle.winner);
+                if(isW){
+                    const pBot=p.startsWith('Bot_');
+                    const pVal=battle.results[p]?battle.results[p].totalValue:0;
+                    stage.innerHTML='<div class="arena-winner-result">'+
+                        getAvatarHTML(p,'',56)+
+                        '<div style="font-size:1.2rem;font-weight:900;color:var(--gold-spin);margin-top:0.3rem;">WINNER!</div>'+
+                        '<div style="font-size:1rem;font-weight:800;color:var(--text-main);">'+p+(pBot?' (Bot)':'')+'</div>'+
+                        '<div style="font-size:1.1rem;font-weight:800;color:var(--gold-spin);">$'+fmt(pVal)+'</div>'+
+                        (!pBot&&p===currentUser?'<div style="color:#4ade80;font-weight:700;font-size:0.85rem;margin-top:0.2rem;">Items added to inventory!</div>':'')+
+                    '</div>';
+                }else{
+                    stage.innerHTML='<div class="arena-winner-result" style="opacity:0.4;">'+
+                        getAvatarHTML(p,'',40)+
+                        '<div style="font-size:0.85rem;font-weight:700;color:var(--text-muted);">'+p+'</div>'+
+                        '<div style="font-size:0.9rem;font-weight:700;color:var(--text-muted);">$'+fmt(battle.results[p]?battle.results[p].totalValue:0)+'</div>'+
+                    '</div>';
+                }
+            });
+        }
+
+        async function showCountdown(token){
+            const arena=document.getElementById('battle-arena');
+            const host=arena||document.body;
+            const ov=document.createElement('div');ov.className='battle-countdown';host.appendChild(ov);
+            for(const t of['3','2','1','GO!']){if(token&&token.cancelled){ov.remove();return;}ov.innerHTML=`<div class="countdown-number">${t}</div>`;playWin();await sleep(t==='GO!'?500:900);}
+            ov.remove();
+        }
+
+        // --- COINFLIP ---
+        let activeCoinflipId=null;
+        let activeCfState=null;
+
+        function cfCoinHTML(side,size){
+            size=size||52;
+            var cls=side==='heads'?'cf-coin-heads':'cf-coin-tails';
+            var letter=side==='heads'?'H':'T';
+            var fs=Math.round(size*0.45);
+            return'<div class="'+cls+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:'+fs+'px;font-weight:900;">'+letter+'</div>';
+        }
+        function renderCoinflipPage(){
+            var amtInput=document.getElementById('cf-custom-amount');
+            if(amtInput)amtInput.value=cfState.amount;
+            document.getElementById('cf-sides').innerHTML=['heads','tails'].map(function(s){
+                var label=s.charAt(0).toUpperCase()+s.slice(1);
+                return'<div class="cf-side-btn '+(cfState.side===s?'active':'')+'" onclick="cfState.side=\''+s+'\';renderCoinflipPage()">'+
+                    '<div class="cf-preview-coin '+( s==='heads'?'cf-coin-heads':'cf-coin-tails')+'">'+( s==='heads'?'H':'T')+'</div>'+
+                    '<div class="cf-side-label">'+label+'</div></div>';
+            }).join('');
+            renderCoinflipList();
+        }
+        function renderCoinflipList(){
+            const el=document.getElementById('cf-list');if(!el)return;
+            const items=cfLobbyCache.filter(c=>c.status==='waiting'||c.status==='flipping');
+            if(!items.length){el.innerHTML='<div class="battle-empty">No open coinflips</div>';return;}
+            el.innerHTML=items.map(c=>{
+                const canJoin=c.status==='waiting'&&c.creator!==currentUser;
+                const isMine=c.creator===currentUser&&c.status==='waiting';
+                const otherSide=c.side==='heads'?'Tails':'Heads';
+                return`<div class="cf-card"><div style="flex:1;"><div style="font-weight:700;color:var(--text-main);">${c.creator} · $${fmt(c.amount)} · ${c.side.charAt(0).toUpperCase()+c.side.slice(1)} ${c.status==='flipping'?'<span style="color:var(--gold-spin);">Flipping...</span>':''}</div></div>
+                <div style="display:flex;gap:0.4rem;">
+                ${canJoin?`<button class="btn-open" style="padding:0 1rem;height:36px;font-size:0.85rem;" onclick="joinCoinflip('${c.id}')">Join (${otherSide}) $${fmt(c.amount)}</button>`:''}
+                <button class="btn-demo" style="padding:0 0.8rem;height:36px;font-size:0.85rem;" onclick="viewCoinflip('${c.id}')">View</button>
+                ${isMine?`<button class="btn-demo" style="padding:0 0.8rem;height:36px;font-size:0.85rem;color:#ef4444;" onclick="cancelCoinflip('${c.id}')">Cancel</button>`:''}
+                </div></div>`;
+            }).join('');
+        }
+        function createCoinflip(){
+            if(!socket||!currentUser)return;
+            var inp=document.getElementById('cf-custom-amount');
+            if(inp)cfState.amount=parseFloat(inp.value)||0;
+            if(cfState.amount<=0){alert('Enter a valid bet amount');return;}
+            cfState.amount=Math.round(cfState.amount*100)/100;
+            if(balance<cfState.amount){alert('Insufficient balance!');return;}
+            socket.emit('coinflip:create',{username:currentUser,amount:cfState.amount,side:cfState.side},function(res){
+                if(!res.ok){alert(res.msg);return;}
+                balance-=cfState.amount;updateUI();
+                activeCoinflipId=res.coinflipId;
+                socket.emit('coinflip:watch',{coinflipId:res.coinflipId});
+                showPage('coinflip-room');
+            });
+        }
+        function joinCoinflip(cfId){
+            if(!socket||!currentUser)return;
+            const cf=cfLobbyCache.find(c=>c.id===cfId);if(!cf)return;
+            if(balance<cf.amount){alert('Insufficient balance!');return;}
+            socket.emit('coinflip:join',{coinflipId:cfId,username:currentUser},function(res){
+                if(!res.ok){alert(res.msg);return;}
+                balance-=res.amount;updateUI();
+                activeCoinflipId=cfId;
+                showPage('coinflip-room');
+            });
+        }
+        function viewCoinflip(cfId){
+            activeCoinflipId=cfId;activeCfState=null;
+            if(socket)socket.emit('coinflip:watch',{coinflipId:cfId});
+            showPage('coinflip-room');
+        }
+        function cancelCoinflip(cfId){
+            if(!socket)return;
+            socket.emit('coinflip:cancel',{coinflipId:cfId,username:currentUser},function(res){if(res.ok&&res.refund){balance+=res.refund;updateUI();}});
+        }
+        function callCoinflipBot(cfId){
+            if(!socket)return;
+            socket.emit('coinflip:callBot',{coinflipId:cfId,username:currentUser},function(res){if(!res.ok)alert(res.msg);});
+        }
+
+        function renderCoinflipActive(cf){
+            activeCfState=cf;
+            if(cfAnimRunning)return;
+            if(activeCoinflipId===cf.id&&document.getElementById('page-coinflip-room').classList.contains('active')){
+                renderCfRoom(cf);
+            }
+        }
+
+        let cfAnimRunning=false;
+
+        function renderCfRoom(cf){
+            if(!cf)cf=activeCfState;
+            const ct=document.getElementById('cf-room-content');if(!ct)return;
+            if(!cf){ct.innerHTML='<div class="battle-empty">Connecting...</div>';return;}
+            const isMine=cf.creator===currentUser;
+            const side1=cf.side.charAt(0).toUpperCase()+cf.side.slice(1);
+            const side2=cf.joinerSide?(cf.joinerSide.charAt(0).toUpperCase()+cf.joinerSide.slice(1)):(cf.side==='heads'?'Tails':'Heads');
+            const p2=cf.joiner||'<span style="color:#555">Waiting...</span>';
+            const isBot=cf.joiner&&cf.joiner.startsWith('Bot_');
+
+            function coinClass(side){return side.toLowerCase()==='heads'?'cf-coin-heads':'cf-coin-tails';}
+            function coinLetter(side){return side.toLowerCase()==='heads'?'H':'T';}
+
+            function playerCard(name,side,isWinner,showBot){
+                var cls=coinClass(side);
+                var realName=(typeof name==='string'&&name.indexOf('<')===-1)?name:null;
+                var av=realName?'<div style="display:flex;justify-content:center;margin-bottom:0.4rem;">'+getAvatarHTML(realName)+'</div>':'';
+                return'<div class="battle-player '+(isWinner?'is-winner':'')+'" style="min-width:150px;max-width:200px;">'+
+                    av+
+                    '<div class="battle-player-name">'+name+(showBot?' <span class="bot-tag">BOT</span>':'')+'</div>'+
+                    '<div style="margin-top:0.75rem;display:flex;flex-direction:column;align-items:center;gap:0.3rem;">'+
+                    '<div class="'+cls+'" style="width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;">'+coinLetter(side)+'</div>'+
+                    '<div style="font-weight:700;font-size:0.85rem;color:var(--text-muted);">'+side+'</div></div></div>';
+            }
+
+            if(cf.status==='waiting'){
+                ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
+                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                    ${playerCard(cf.creator,side1,false,false)}
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.06);border:3px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#555;">?</div>
+                        <div style="margin-top:0.5rem;font-weight:800;color:var(--text-muted);">VS</div>
+                    </div>
+                    ${playerCard(typeof cf.joiner==='string'?cf.joiner:'Waiting...',side2,false,false)}
+                </div>
+                <div style="text-align:center;">
+                    ${isMine&&!cf.joiner?`<button class="btn-demo" style="margin-right:0.5rem;" onclick="callCoinflipBot('${cf.id}')">Call Bot</button>`:''}
+                    ${isMine?`<button class="btn-demo" style="color:#ef4444;" onclick="cancelCoinflip('${cf.id}');showPage('coinflip')">Cancel</button>`:''}
+                </div>`;
+                return;
+            }
+
+            if(cf.status==='flipping'&&!cfAnimRunning){
+                cfAnimRunning=true;
+                ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
+                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                    ${playerCard(cf.creator,side1,false,false)}
+                    <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:420px;">
+                        <div class="cf-flip-zone" id="cf-flip-zone">
+                            <div class="cf-flip-shadow" id="cf-flip-shadow"></div>
+                            <div class="cf-flip-coin cf-coin-heads" id="cf-flip-coin">H</div>
+                            <div class="cf-flip-result" id="cf-flip-result"></div>
+                        </div>
+                    </div>
+                    ${playerCard(cf.joiner||'?',side2,false,isBot)}
+                </div>`;
+
+                (function runCoinFlip(){
+                    var coin=document.getElementById('cf-flip-coin');
+                    var shadowEl=document.getElementById('cf-flip-shadow');
+                    var resultEl=document.getElementById('cf-flip-result');
+                    if(!coin)return;
+
+                    var restY=140;
+                    var flipAngle=0;
+                    var showingHeads=true;
+                    var elapsed=0;
+                    var lastTime=performance.now();
+                    var landed=false;
+
+                    // Phase 1: flip up (0-500ms)
+                    // Phase 2: fall down (500-1000ms)
+                    // Phase 3: first bounce up (1000-1300ms)
+                    // Phase 4: bounce down (1300-1600ms)
+                    // Phase 5: small bounce (1600-1800ms)
+                    // Phase 6: settle on result (1800-2100ms)
+                    // Phase 7: show result text (2100-2600ms)
+
+                    var totalDuration=2600;
+
+                    function swapFace(){
+                        var absAngle=((flipAngle%360)+360)%360;
+                        var nowHeads=(absAngle<90||absAngle>270);
+                        if(nowHeads!==showingHeads){
+                            showingHeads=nowHeads;
+                            coin.className='cf-flip-coin '+(nowHeads?'cf-coin-heads':'cf-coin-tails');
+                            coin.innerText=nowHeads?'H':'T';
+                        }
+                    }
+
+                    function tick(now){
+                        var dt=Math.min(now-lastTime,32);
+                        lastTime=now;
+                        elapsed+=dt;
+                        var y,scale;
+
+                        if(elapsed<500){
+                            // Rise up, get bigger, flip fast
+                            var t=elapsed/500;
+                            var et=1-Math.pow(1-t,3);
+                            y=restY-90*et;
+                            scale=1+0.4*et;
+                            flipAngle+=18*(dt/16);
+                            swapFace();
+                        }else if(elapsed<1000){
+                            // Fall back down
+                            var t=(elapsed-500)/500;
+                            var et=t*t;
+                            y=(restY-90)+90*et;
+                            scale=1.4-0.4*et;
+                            flipAngle+=14*(1-t*0.3)*(dt/16);
+                            swapFace();
+                            if(et>0.95&&!landed){landed=true;playTick();}
+                        }else if(elapsed<1300){
+                            // First bounce up
+                            var t=(elapsed-1000)/300;
+                            var et=Math.sin(t*Math.PI);
+                            y=restY-35*et;
+                            scale=1+0.15*et;
+                            flipAngle+=10*(1-t*0.5)*(dt/16);
+                            swapFace();
+                        }else if(elapsed<1600){
+                            // Bounce down
+                            var t=(elapsed-1300)/300;
+                            y=restY;
+                            scale=1;
+                            flipAngle+=7*(1-t*0.7)*(dt/16);
+                            swapFace();
+                            if(t<0.3){var bt=t/0.3;y=restY-12*Math.sin(bt*Math.PI);scale=1+0.05*Math.sin(bt*Math.PI);}
+                        }else if(elapsed<1800){
+                            // Tiny last bounce
+                            var t=(elapsed-1600)/200;
+                            var et=Math.sin(t*Math.PI);
+                            y=restY-5*et;
+                            scale=1;
+                            flipAngle+=3*(1-t)*(dt/16);
+                            swapFace();
+                        }else if(elapsed<2100){
+                            // Settle on result face
+                            var t=(elapsed-1800)/300;
+                            y=restY;
+                            scale=1;
+                            var resultIsHeads=cf.result==='heads';
+                            var target=resultIsHeads?0:180;
+                            var cur=((flipAngle%360)+360)%360;
+                            var diff=target-cur;
+                            if(diff>180)diff-=360;
+                            if(diff<-180)diff+=360;
+                            flipAngle+=diff*0.25;
+                            swapFace();
+                        }else{
+                            // Show result
+                            y=restY;
+                            scale=1.08;
+                            var resultIsHeads=cf.result==='heads';
+                            coin.className='cf-flip-coin '+(resultIsHeads?'cf-coin-heads':'cf-coin-tails');
+                            coin.innerText=resultIsHeads?'H':'T';
+                            coin.style.boxShadow=resultIsHeads?'0 0 30px rgba(239,68,68,0.5)':'0 0 30px rgba(59,130,246,0.5)';
+                            if(resultEl&&resultEl.style.opacity==='0'){
+                                resultEl.innerHTML=cf.result.toUpperCase()+'!';
+                                resultEl.style.color=resultIsHeads?'#fca5a5':'#93c5fd';
+                                resultEl.style.opacity='1';
+                                resultEl.style.transform='scale(1)';
+                                playWin();
+                            }
+                            coin.style.top=y+'px';
+                            coin.style.transform='scale('+scale+')';
+                            if(elapsed>=totalDuration){
+                                setTimeout(function(){
+                                    cfAnimRunning=false;
+                                    activeCfState.status='finished';
+                                    if(cf.winner===currentUser){balance+=cf.amount*2;updateUI();}
+                                    renderCfRoom(activeCfState);
+                                },600);
+                                return;
+                            }
+                            requestAnimationFrame(tick);
+                            return;
+                        }
+
+                        if(shadowEl){
+                            var shadowScale=scale;
+                            var sw=50+(shadowScale-1)*40;
+                            shadowEl.style.width=sw+'px';
+                            shadowEl.style.marginLeft=(-sw/2)+'px';
+                            shadowEl.style.opacity=(0.15*(2-scale)).toFixed(2);
+                        }
+                        coin.style.top=y+'px';
+                        coin.style.transform='scale('+scale.toFixed(3)+')';
+                        requestAnimationFrame(tick);
+                    }
+                    coin.style.top=restY+'px';
+                    requestAnimationFrame(tick);
+                })();
+                return;
+            }
+
+            if(cf.status==='finished'){
+                var won=cf.winner===currentUser;
+                var inGame=cf.creator===currentUser||cf.joiner===currentUser;
+                var rIsHeads=cf.result==='heads';
+                var rCls=rIsHeads?'cf-coin-heads':'cf-coin-tails';
+                var rLetter=rIsHeads?'H':'T';
+                var rGlow=rIsHeads?'0 0 30px rgba(239,68,68,0.4)':'0 0 30px rgba(59,130,246,0.4)';
+                var rColor=rIsHeads?'#fca5a5':'#93c5fd';
+                ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
+                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                    ${playerCard(cf.creator,side1,cf.winner===cf.creator,false)}
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div class="${rCls}" style="width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.8rem;font-weight:900;box-shadow:${rGlow};">${rLetter}</div>
+                        <div class="cf-result" style="color:${rColor};margin-top:0.75rem;font-size:1.3rem;">${cf.result.toUpperCase()}!</div>
+                        <div style="font-weight:800;font-size:1.05rem;color:var(--text-main);margin-top:0.3rem;">${cf.winner} wins $${fmt(cf.amount*2)}</div>
+                        ${won?'<div style="color:#4ade80;font-weight:700;margin-top:0.3rem;">You won!</div>':''}
+                        ${!won&&inGame?'<div style="color:#ef4444;font-weight:700;margin-top:0.3rem;">You lost</div>':''}
+                    </div>
+                    ${playerCard(cf.joiner||'?',side2,cf.winner===cf.joiner,isBot)}
+                </div>
+                <div style="text-align:center;margin-top:1rem;"><button class="btn-demo" onclick="activeCoinflipId=null;activeCfState=null;showPage('coinflip')">Back to Coinflips</button></div>`;
+            }
+        }
+
+        // --- BLACKJACK ---
+        const BJ_SUITS=[['♠','black'],['♥','red'],['♦','red'],['♣','black']];
+        const BJ_RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+        let bjState={active:false,bet:0,deck:[],player:[],dealer:[],over:false,animating:false};
+
+        function bjNewDeck(){
+            const deck=[];
+            BJ_SUITS.forEach(([sym,color])=>{BJ_RANKS.forEach(rank=>{deck.push({rank,suit:sym,color});});});
+            for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+            return deck;
+        }
+        function bjCardValue(rank){if(rank==='A')return 11;if('KQJ10'.includes(rank))return 10;return parseInt(rank,10);}
+        function bjHandTotal(hand){let t=0,a=0;hand.forEach(c=>{t+=bjCardValue(c.rank);if(c.rank==='A')a++;});while(t>21&&a>0){t-=10;a--;}return t;}
+        function bjIsBlackjack(hand){return hand.length===2&&bjHandTotal(hand)===21;}
+
+        function bjCardInner(card){
+            return'<div class="bj-card-corner tl"><span class="bj-rank">'+card.rank+'</span><span class="bj-suit-s">'+card.suit+'</span></div>'+
+                '<div class="bj-card-center">'+card.suit+'</div>'+
+                '<div class="bj-card-corner br"><span class="bj-rank">'+card.rank+'</span><span class="bj-suit-s">'+card.suit+'</span></div>';
+        }
+        function bjCardHTML(card){return'<div class="bj-card '+card.color+'">'+bjCardInner(card)+'</div>';}
+        function bjCardBackHTML(){return'<div class="bj-card back"></div>';}
+
+        function bjUpdateDeckCount(){
+            var el=document.getElementById('bj-deck-count');
+            if(el)el.innerText=bjState.deck.length+' left';
+        }
+        function bjUpdateTotal(who){
+            if(who==='player'){
+                var el=document.getElementById('bj-player-total');if(el)el.innerText=bjHandTotal(bjState.player);
+            }else{
+                var el=document.getElementById('bj-dealer-total');
+                if(el)el.innerText=bjState.over?bjHandTotal(bjState.dealer):bjCardValue(bjState.dealer[0].rank);
+            }
+        }
+
+        function bjFlyCard(card,targetContainer,faceUp,callback){
+            var table=document.getElementById('bj-table');
+            var deckEl=document.getElementById('bj-deck-top');
+            if(!table||!deckEl||!targetContainer){if(callback)callback();return;}
+
+            var tableRect=table.getBoundingClientRect();
+            var deckRect=deckEl.getBoundingClientRect();
+            var fly=document.createElement('div');
+            fly.className='bj-fly';
+            fly.style.left=(deckRect.left-tableRect.left)+'px';
+            fly.style.top=(deckRect.top-tableRect.top)+'px';
+            fly.style.transform='rotate(0deg)';
+            table.appendChild(fly);
+
+            var placeholder=document.createElement('div');
+            placeholder.className='bj-card back';
+            placeholder.style.visibility='hidden';
+            targetContainer.appendChild(placeholder);
+
+            requestAnimationFrame(function(){
+                var targetRect=placeholder.getBoundingClientRect();
+                fly.style.left=(targetRect.left-tableRect.left)+'px';
+                fly.style.top=(targetRect.top-tableRect.top)+'px';
+                fly.style.transform='rotate('+(Math.random()*6-3)+'deg)';
+            });
+
+            bjUpdateDeckCount();
+            playTick();
+
+            setTimeout(function(){
+                fly.remove();
+                if(faceUp){
+                    placeholder.className='bj-card '+card.color;
+                    placeholder.style.visibility='';
+                    placeholder.innerHTML=bjCardInner(card);
+                }else{
+                    placeholder.className='bj-card back';
+                    placeholder.style.visibility='';
+                    placeholder.id='bj-hidden-card';
+                }
+                if(callback)callback();
+            },480);
+        }
+
+        function bjRevealHidden(card,callback){
+            var el=document.getElementById('bj-hidden-card');
+            if(!el){if(callback)callback();return;}
+            el.style.transition='transform 0.3s ease';
+            el.style.transform='scaleX(0)';
+            setTimeout(function(){
+                el.className='bj-card '+card.color;
+                el.innerHTML=bjCardInner(card);
+                el.id='';
+                el.style.transform='scaleX(1)';
+                setTimeout(function(){el.style.transition='';el.style.transform='';if(callback)callback();},300);
+            },300);
+        }
+
+        function bjSetActionsVisible(v){var a=document.getElementById('bj-actions');if(a)a.style.display=v?'flex':'none';}
+        function bjSetResult(text,cls){var r=document.getElementById('bj-result');if(!r)return;r.innerText=text||'';r.className='bj-result'+(cls?' '+cls:'');}
+
+        function bjDeal(){
+            if(bjState.animating)return;
+            if(bjState.active&&!bjState.over)return;
+            var inp=document.getElementById('bj-bet-amount');
+            var bet=parseFloat(inp?inp.value:'0')||0;
+            bet=Math.round(bet*100)/100;
+            if(bet<=0){alert('Enter a valid bet amount');return;}
+            if(balance<bet){alert('Insufficient balance!');return;}
+            balance-=bet;updateUI();
+
+            bjState={active:true,bet:bet,deck:bjNewDeck(),player:[],dealer:[],over:false,animating:true};
+            document.getElementById('bj-area').style.display='flex';
+            document.getElementById('bj-deck-stack').style.display='';
+            document.getElementById('bj-player-cards').innerHTML='';
+            document.getElementById('bj-dealer-cards').innerHTML='';
+            document.getElementById('bj-player-total').innerText='';
+            document.getElementById('bj-dealer-total').innerText='';
+            document.getElementById('bj-deal-btn').disabled=true;
+            bjSetResult('','');
+            bjSetActionsVisible(false);
+            bjUpdateDeckCount();
+
+            var pc=document.getElementById('bj-player-cards');
+            var dc=document.getElementById('bj-dealer-cards');
+
+            // Deal 4 cards sequentially: player, dealer, player, dealer(hidden)
+            var c1=bjState.deck.pop();bjState.player.push(c1);
+            bjFlyCard(c1,pc,true,function(){
+                bjUpdateTotal('player');
+                var c2=bjState.deck.pop();bjState.dealer.push(c2);
+                bjFlyCard(c2,dc,true,function(){
+                    bjUpdateTotal('dealer');
+                    var c3=bjState.deck.pop();bjState.player.push(c3);
+                    bjFlyCard(c3,pc,true,function(){
+                        bjUpdateTotal('player');
+                        var c4=bjState.deck.pop();bjState.dealer.push(c4);
+                        bjFlyCard(c4,dc,false,function(){
+                            bjState.animating=false;
+                            document.getElementById('bj-deal-btn').disabled=false;
+                            var playerBJ=bjIsBlackjack(bjState.player);
+                            var dealerBJ=bjIsBlackjack(bjState.dealer);
+                            if(playerBJ||dealerBJ){
+                                bjRevealHidden(bjState.dealer[1],function(){
+                                    bjUpdateTotal('dealer');
+                                    if(playerBJ&&dealerBJ)bjFinish('push');
+                                    else if(playerBJ)bjFinish('blackjack');
+                                    else bjFinish('lose');
+                                });
+                            }else{
+                                bjSetActionsVisible(true);
+                            }
+                        });
+                    });
+                });
+            });
+        }
+
+        function bjHit(){
+            if(!bjState.active||bjState.over||bjState.animating)return;
+            bjState.animating=true;
+            bjSetActionsVisible(false);
+            var c=bjState.deck.pop();bjState.player.push(c);
+            var pc=document.getElementById('bj-player-cards');
+            bjFlyCard(c,pc,true,function(){
+                bjUpdateTotal('player');
+                bjState.animating=false;
+                if(bjHandTotal(bjState.player)>21){
+                    bjRevealHidden(bjState.dealer[1],function(){
+                        bjUpdateTotal('dealer');
+                        bjFinish('bust');
+                    });
+                }else{
+                    bjSetActionsVisible(true);
+                }
+            });
+        }
+
+        function bjStand(){
+            if(!bjState.active||bjState.over||bjState.animating)return;
+            bjState.animating=true;
+            bjSetActionsVisible(false);
+
+            // Reveal hidden card first
+            bjRevealHidden(bjState.dealer[1],function(){
+                bjState.over=true;
+                bjUpdateTotal('dealer');
+                // Dealer draws cards one by one
+                function dealerDraw(){
+                    if(bjHandTotal(bjState.dealer)<=16){
+                        var c=bjState.deck.pop();bjState.dealer.push(c);
+                        var dc=document.getElementById('bj-dealer-cards');
+                        bjFlyCard(c,dc,true,function(){
+                            bjUpdateTotal('dealer');
+                            setTimeout(dealerDraw,300);
+                        });
+                    }else{
+                        bjState.animating=false;
+                        var pt=bjHandTotal(bjState.player);
+                        var dt=bjHandTotal(bjState.dealer);
+                        if(dt>21)bjFinish('win');
+                        else if(dt>pt)bjFinish('lose');
+                        else if(dt<pt)bjFinish('win');
+                        else bjFinish('push');
+                    }
+                }
+                setTimeout(dealerDraw,400);
+            });
+        }
+
+        function bjFinish(outcome){
+            bjState.over=true;bjState.active=false;bjState.animating=false;
+            bjSetActionsVisible(false);
+            var bet=bjState.bet;
+            var msg='',cls='';
+            if(outcome==='blackjack'){var pay=bet*2.5;balance+=pay;msg='BLACKJACK! +$'+fmt(pay-bet);cls='win';}
+            else if(outcome==='win'){var pay=bet*2;balance+=pay;msg='YOU WIN! +$'+fmt(pay-bet);cls='win';}
+            else if(outcome==='push'){balance+=bet;msg='PUSH — bet returned';cls='push';}
+            else if(outcome==='bust'){msg='BUST! -$'+fmt(bet);cls='lose';}
+            else{msg='YOU LOSE -$'+fmt(bet);cls='lose';}
+            updateUI();bjSetResult(msg,cls);
+            var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal Again';db.disabled=false;}
+        }
+
+        function renderBlackjackPage(){
+            if(!bjState.active){
+                var area=document.getElementById('bj-area');if(area)area.style.display='none';
+                var ds=document.getElementById('bj-deck-stack');if(ds)ds.style.display='none';
+                bjSetActionsVisible(false);bjSetResult('','');
+                var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal';db.disabled=false;}
+            }
+        }
+
+        // --- Polling stubs ---
+        function startBattlePoll(){if(socket)socket.emit('lobby:refresh');}
+        function stopBattlePoll(){}
+
+        // --- ADMIN PANEL ---
+        function isCurrentUserAdmin() {
+            if (!currentUser) return false;
+            const users = getUsers();
+            return users[currentUser] && users[currentUser].isAdmin;
+        }
+
+        function renderAdminPanel() {
+            if (!isCurrentUserAdmin()) return;
+            const users = getUsers();
+            const search = (document.getElementById('admin-search').value || '').toLowerCase();
+            const allNames = Object.keys(users);
+            const filtered = search ? allNames.filter(n => n.includes(search)) : allNames;
+
+            let totalBal = 0, totalItems = 0, bannedCount = 0;
+            allNames.forEach(n => {
+                totalBal += users[n].balance || 0;
+                totalItems += (users[n].inventory || []).length;
+                if (users[n].banned) bannedCount++;
+            });
+
+            document.getElementById('admin-stats').innerHTML =
+                `<div class="admin-stat"><div class="admin-stat-value">${allNames.length}</div><div class="admin-stat-label">Users</div></div>` +
+                `<div class="admin-stat"><div class="admin-stat-value">$${fmt(totalBal)}</div><div class="admin-stat-label">Total Balance</div></div>` +
+                `<div class="admin-stat"><div class="admin-stat-value">${totalItems}</div><div class="admin-stat-label">Total Items</div></div>` +
+                `<div class="admin-stat"><div class="admin-stat-value">${bannedCount}</div><div class="admin-stat-label">Banned</div></div>`;
+
+            const tbody = document.getElementById('admin-tbody');
+            tbody.innerHTML = '';
+            filtered.forEach(name => {
+                const u = users[name];
+                const bal = u.balance || 0;
+                const items = (u.inventory || []).length;
+                const isBanned = !!u.banned;
+                const isAdm = !!u.isAdmin;
+                const statusHTML = isBanned
+                    ? '<span class="status-banned">Banned</span>'
+                    : '<span class="status-active">Active</span>';
+                const nameHTML = `<span class="user-cell">${name}</span>` + (isAdm ? ' <span class="admin-badge" style="display:inline">ADMIN</span>' : '');
+
+                let actionsHTML = '';
+                if (!isAdm) {
+                    actionsHTML += `<button class="admin-btn admin-btn-give" onclick="adminGive('${name}')">+ Funds</button>`;
+                    actionsHTML += `<button class="admin-btn admin-btn-take" onclick="adminTake('${name}')">- Funds</button>`;
+                    if (isBanned) {
+                        actionsHTML += `<button class="admin-btn admin-btn-unban" onclick="adminUnban('${name}')">Unban</button>`;
+                    } else {
+                        actionsHTML += `<button class="admin-btn admin-btn-ban" onclick="adminBan('${name}')">Ban</button>`;
+                    }
+                }
+
+                tbody.innerHTML += `<tr>
+                    <td>${nameHTML}</td>
+                    <td class="bal-cell">$${fmt(bal)}</td>
+                    <td class="items-cell">${items} item${items !== 1 ? 's' : ''}</td>
+                    <td>${statusHTML}</td>
+                    <td><div class="admin-actions">${actionsHTML}</div></td>
+                </tr>`;
+            });
+        }
+
+        function adminGive(username) {
+            if (!isCurrentUserAdmin()) return;
+            const input = prompt(`How much to give ${username}?`);
+            if (input === null) return;
+            const amt = parseFloat(input);
+            if (isNaN(amt) || amt <= 0 || amt > 1000000) { alert('Enter a valid amount (1 - 1,000,000)'); return; }
+            const users = getUsers();
+            if (!users[username]) return;
+            users[username].balance = (users[username].balance || 0) + amt;
+            saveUsers(users);
+            if (username === currentUser) { balance = users[username].balance; updateUI(); }
+            renderAdminPanel();
+        }
+
+        function adminTake(username) {
+            if (!isCurrentUserAdmin()) return;
+            const users = getUsers();
+            if (!users[username]) return;
+            const cur = users[username].balance || 0;
+            const input = prompt(`Take funds from ${username} (current: $${fmt(cur)})`);
+            if (input === null) return;
+            const amt = parseFloat(input);
+            if (isNaN(amt) || amt <= 0) { alert('Enter a valid amount'); return; }
+            users[username].balance = Math.max(0, cur - amt);
+            saveUsers(users);
+            if (username === currentUser) { balance = users[username].balance; updateUI(); }
+            renderAdminPanel();
+        }
+
+        function adminBan(username) {
+            if (!isCurrentUserAdmin()) return;
+            if (!confirm(`Ban user "${username}"? They won't be able to log in.`)) return;
+            const users = getUsers();
+            if (!users[username] || users[username].isAdmin) return;
+            users[username].banned = true;
+            saveUsers(users);
+            if (username === getSession()) { clearSession(); }
+            renderAdminPanel();
+        }
+
+        function adminUnban(username) {
+            if (!isCurrentUserAdmin()) return;
+            const users = getUsers();
+            if (!users[username]) return;
+            users[username].banned = false;
+            saveUsers(users);
+            renderAdminPanel();
+        }
+
+        function sellItem(idx) { if (idx < 0 || idx >= inventory.length) return; balance += inventory[idx].price; inventory.splice(idx, 1); updateUI(); }
+        function sellAll() { inventory.forEach(i => balance += i.price); inventory = []; updateUI(); }
+
+        (function init() {
+            const session = getSession();
+            if (session && loadUserData(session)) {
+                const users = getUsers();
+                if (users[session] && users[session].banned) {
+                    clearSession();
+                    currentUser = null;
+                    balance = 0;
+                    inventory = [];
+                    showLoginUI();
+                } else {
+                    renderBrowser();
+                    updateUI();
+                    showGameUI();
+                    var hash = location.hash.replace('#','');
+                    if (hash) {
+                        var parts = hash.split('/');
+                        var page = parts[0];
+                        var roomId = parts[1] || null;
+                        if (page === 'battle-room' && roomId) {
+                            activeBattleId = roomId;
+                            if (socket) socket.emit('battle:watch', {battleId: roomId});
+                            showPage('battle-room');
+                        } else if (page === 'coinflip-room' && roomId) {
+                            activeCoinflipId = roomId;
+                            if (socket) socket.emit('coinflip:watch', {coinflipId: roomId});
+                            showPage('coinflip-room');
+                        } else {
+                            var validPages = ['browser','battles','create-battle','coinflip','blackjack','inventory','opening','admin'];
+                            if (validPages.indexOf(page) !== -1) showPage(page);
+                        }
+                    }
+                }
+            } else {
+                clearSession();
+                showLoginUI();
+            }
+        })();
+
+        window.addEventListener('hashchange', function() {
+            var hash = location.hash.replace('#','');
+            var parts = hash.split('/');
+            var page = parts[0];
+            var roomId = parts[1] || null;
+            if (!page || !currentUser) return;
+            if (page === 'battle-room' && roomId) { activeBattleId = roomId; if(socket)socket.emit('battle:watch',{battleId:roomId}); showPage('battle-room'); }
+            else if (page === 'coinflip-room' && roomId) { activeCoinflipId = roomId; if(socket)socket.emit('coinflip:watch',{coinflipId:roomId}); showPage('coinflip-room'); }
+            else { showPage(page); }
+        });
+    </script>
+</body>
+</html>
