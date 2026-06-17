@@ -609,6 +609,12 @@
             .arena-spin-item{height:75px;}
             .arena-spin-item img{width:48px;height:48px;}
         }
+        /* 2v2 / 3v3 / 4-player on mobile: wrap into max 2 columns instead of squishing */
+        @media(max-width:640px){
+            .battle-arena{grid-template-columns:repeat(2,1fr)!important;}
+            .arena-col:nth-child(2n){border-right:none;}
+            .arena-col{border-bottom:1px solid rgba(255,255,255,0.06);}
+        }
         @media(max-width:420px){
             .battle-players.p2,.battle-players.p3,.battle-players.p4{grid-template-columns:1fr 1fr;}
             .battle-slot img{width:50px;height:50px;}
@@ -619,6 +625,40 @@
             .arena-spin-item img{width:40px;height:40px;}
             .battle-win-box{padding:1.8rem;}
         }
+
+        /* --- COINFLIP ROOM: stable, non-reflowing layout --- */
+        .cf-room-layout{display:flex;justify-content:center;align-items:flex-start;gap:1.5rem;margin:2rem 0;flex-wrap:nowrap;}
+        .cf-room-layout .cf-room-player{min-width:150px;max-width:200px;flex-shrink:0;}
+        .cf-room-center{flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+        @media(max-width:560px){
+            .cf-room-layout{gap:0.75rem;}
+            .cf-room-layout .cf-room-player{min-width:96px;}
+        }
+
+        /* --- WAITING ROOM (player bars) --- */
+        .wait-players{display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;}
+        .wait-player-bar{display:flex;align-items:center;gap:0.85rem;background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:0.7rem 1rem;}
+        .wait-player-bar.empty{border-style:dashed;border-color:rgba(255,255,255,0.12);}
+        .wait-pb-meta{flex:1;min-width:0;display:flex;flex-direction:column;}
+        .wait-pb-name{font-size:0.92rem;font-weight:800;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .wait-pb-name .bot-tag{font-size:0.62rem;}
+        .wait-pb-sub{font-size:0.78rem;color:var(--text-muted);font-weight:600;}
+        .wait-pb-total{font-size:1.05rem;font-weight:800;color:#4ade80;white-space:nowrap;}
+        .wait-pb-looking{font-size:0.85rem;font-weight:700;color:var(--text-muted);}
+        .wait-spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,0.12);border-top-color:var(--gold-spin);animation:waitSpin 0.9s linear infinite;flex-shrink:0;}
+        @keyframes waitSpin{to{transform:rotate(360deg);}}
+        .wait-callbot{background:var(--btn-demo-bg);color:#fff;border:none;padding:0.45rem 0.95rem;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.82rem;transition:.2s;flex-shrink:0;}
+        .wait-callbot:hover{background:var(--btn-demo-hover);}
+        .wait-reel-wrap{position:relative;}
+        .wait-vs-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;width:46px;height:46px;border-radius:50%;background:rgba(15,18,25,0.92);border:2px solid var(--gold-spin);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.95rem;color:var(--gold-spin);box-shadow:0 0 18px rgba(250,204,21,0.25);}
+        @media(max-width:640px){
+            .wait-vs-badge{width:38px;height:38px;font-size:0.8rem;}
+        }
+
+        /* --- BET SHORTCUT BUTTONS --- */
+        .bet-shortcuts{display:flex;gap:0.3rem;flex-shrink:0;}
+        .bet-shortcut{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-weight:700;font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:6px;cursor:pointer;font-family:inherit;transition:.2s;}
+        .bet-shortcut:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.2);}
 
         /* --- ADMIN PANEL --- */
         .admin-panel-header {
@@ -1011,6 +1051,11 @@
             <div class="cf-create-row">
                 <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);">Bet: $</span>
                 <input type="number" id="cf-custom-amount" class="login-input" style="width:120px;margin:0;padding:0.4rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5" oninput="cfState.amount=parseFloat(this.value)||0">
+                <div class="bet-shortcuts">
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','half')">1/2</button>
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','double')">2x</button>
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','max')">Max</button>
+                </div>
                 <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);margin-left:0.5rem;">Side:</span>
                 <div class="cf-sides" id="cf-sides"></div>
                 <button class="btn-open" style="padding:0 1.2rem;height:36px;font-size:0.88rem;margin-left:auto;" id="cf-create-btn" onclick="createCoinflip()">Create</button>
@@ -1074,6 +1119,11 @@
                 <div class="bj-bet-row" id="bj-bet-row">
                     <span style="font-weight:700;font-size:0.9rem;color:var(--text-main);">Bet: $</span>
                     <input type="number" id="bj-bet-amount" class="login-input" style="width:130px;margin:0;padding:0.45rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5">
+                    <div class="bet-shortcuts">
+                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','half')">1/2</button>
+                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','double')">2x</button>
+                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','max')">Max</button>
+                    </div>
                     <button class="btn-open" id="bj-deal-btn" style="padding:0 1.6rem;height:42px;" onclick="bjDeal()">Deal</button>
                 </div>
 
@@ -2005,6 +2055,8 @@
                 // fallback so the player still sees their items locally
                 toAdd.forEach(it => inventory.push(it));
             }
+            // win notification for each item added to inventory
+            toAdd.forEach(item => showToast('You won ' + item.name + '! Added to inventory', 'success'));
             updateUI();
         }
 
@@ -2027,6 +2079,7 @@
                 }
                 balance = res.balance;
                 updateUI();
+                showToast('Spent -$' + fmt(totalPackCost), 'error');
             }
 
             populateIdleSpinnerLayout(openQty);
@@ -2090,6 +2143,20 @@
         let cfState = {amount:5,side:'heads'};
         function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
         function cancelBattleAnim(){battleAnimToken.cancelled=true;battleAnimating=false;}
+
+        // --- Bet amount shortcuts (1/2, 2x, Max) for any number input ---
+        function betShortcut(inputId,action){
+            var inp=document.getElementById(inputId);if(!inp)return;
+            var cur=parseFloat(inp.value)||0;
+            var next=cur;
+            if(action==='half')next=Math.max(0.01,Math.round((cur/2)*100)/100);
+            else if(action==='double')next=Math.round((cur*2)*100)/100;
+            else if(action==='max')next=Math.round(balance*100)/100;
+            if(next<0.01)next=0.01;
+            inp.value=next;
+            // fire any oninput handlers (e.g. cfState.amount sync)
+            inp.dispatchEvent(new Event('input',{bubbles:true}));
+        }
 
         if(socket){
             socket.on('lobby:update',function(list){lobbyCache=list;const el=document.getElementById('battles-list');if(el&&document.getElementById('page-battles').classList.contains('active'))renderBattleLobby();});
@@ -2162,7 +2229,7 @@
             // Deduct entry cost server-side first.
             const pay=await apiCall('/api/balance',{amount:-total});
             if(!pay||!pay.ok){if(btn)btn.disabled=false;return showToast((pay&&pay.msg)||'Not enough balance','error');}
-            balance=pay.balance;updateUI();
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(total),'error');
             socket.emit('battle:create',{username:currentUser,format:createState.format,scoring:createState.scoring,cases:[...createState.cases],quickMode:createState.quick},async function(res){
                 if(!res.ok){
                     // refund the deducted cost on failure
@@ -2182,7 +2249,7 @@
             // Deduct entry cost server-side first.
             const pay=await apiCall('/api/balance',{amount:-cost});
             if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
-            balance=pay.balance;updateUI();
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(cost),'error');
             socket.emit('battle:join',{battleId:bid,username:currentUser},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:cost});if(r&&r.ok)balance=r.balance;updateUI();
@@ -2268,29 +2335,36 @@
                     </div>
                 </div>
                 ${isTeam?`<div style="display:flex;justify-content:space-around;margin-bottom:0.4rem;font-weight:700;font-size:0.82rem;"><span style="color:#3b82f6;">Team 1</span><span style="color:#ef4444;">Team 2</span></div>`:''}
-                <div class="battle-arena" id="battle-arena" style="grid-template-columns:repeat(${np},1fr);">
+                <div class="wait-players">
                     ${Array.from({length:np},(_,i)=>{const p=b.players[i];const ib=p&&p.startsWith('Bot_');
-                        const tc=isTeam?(i<ts?'box-shadow:inset 0 3px 0 #3b82f6;':'box-shadow:inset 0 3px 0 #ef4444;'):'';
                         if(p){
-                            return`<div class="arena-col" style="${tc}">
-                                <div class="arena-stage">${buildIdleTrackHTML(firstWaitCase)}</div>
-                                <div class="arena-playerbar">
-                                    ${getAvatarHTML(p,'arena-pb-avatar')}
-                                    <div class="arena-pb-meta"><div class="arena-pb-name">${p}${ib?' <span class="bot-tag">BOT</span>':''}</div></div>
+                            return`<div class="wait-player-bar">
+                                ${getAvatarHTML(p,'arena-pb-avatar')}
+                                <div class="wait-pb-meta">
+                                    <div class="wait-pb-name">${p}${ib?' <span class="bot-tag">BOT</span>':''}</div>
+                                    <div class="wait-pb-sub">Ready</div>
                                 </div>
+                                <div class="wait-pb-total">$0.00</div>
                             </div>`;
                         }
-                        const addBtn=isCr?`<button class="btn-demo" style="padding:0.3rem 0.8rem;font-size:0.78rem;" onclick="addBotToSlot('${b.id}')">+ Bot</button>`:'';
-                        return`<div class="arena-col" style="${tc};opacity:0.4;">
-                            <div class="arena-stage" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;">
-                                <div style="font-size:0.95rem;font-weight:800;color:var(--text-muted);">Empty</div>
-                                ${addBtn}
+                        const callBot=isCr?`<button class="wait-callbot" onclick="addBotToSlot('${b.id}')">Call Bot</button>`:'';
+                        return`<div class="wait-player-bar empty">
+                            <div class="wait-spinner"></div>
+                            <div class="wait-pb-meta">
+                                <div class="wait-pb-looking">Looking for player...</div>
                             </div>
-                            <div class="arena-playerbar">
-                                ${getAvatarHTML('?','arena-pb-avatar')}
-                                <div class="arena-pb-meta"><div class="arena-pb-name" style="color:var(--text-muted);">Empty</div></div>
-                            </div>
+                            ${callBot}
                         </div>`;}).join('')}
+                </div>
+                <div class="wait-reel-wrap">
+                    <div class="battle-arena" id="battle-arena" style="grid-template-columns:repeat(${np},1fr);">
+                        ${Array.from({length:np},(_,i)=>{const p=b.players[i];
+                            const tc=isTeam?(i<ts?'box-shadow:inset 0 3px 0 #3b82f6;':'box-shadow:inset 0 3px 0 #ef4444;'):'';
+                            return`<div class="arena-col" style="${tc}${p?'':';opacity:0.4;'}">
+                                <div class="arena-stage">${buildIdleTrackHTML(firstWaitCase)}</div>
+                            </div>`;}).join('')}
+                    </div>
+                    ${np>=2?'<div class="wait-vs-badge">VS</div>':''}
                 </div>
                 <div style="text-align:center;margin-top:1rem;">
                     ${isCr?`<button class="btn-demo" style="margin-right:0.5rem;" onclick="fillAllBots('${b.id}')">Fill Bots</button>`:''}
@@ -2629,7 +2703,7 @@
             // Deduct bet server-side first.
             const pay=await apiCall('/api/balance',{amount:-amt});
             if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
-            balance=pay.balance;updateUI();
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(amt),'error');
             socket.emit('coinflip:create',{username:currentUser,amount:amt,side:cfState.side},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:amt});if(r&&r.ok)balance=r.balance;updateUI();
@@ -2648,7 +2722,7 @@
             // Deduct bet server-side first.
             const pay=await apiCall('/api/balance',{amount:-amt});
             if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
-            balance=pay.balance;updateUI();
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(amt),'error');
             socket.emit('coinflip:join',{coinflipId:cfId,username:currentUser},async function(res){
                 if(!res.ok){
                     const r=await apiCall('/api/balance',{amount:amt});if(r&&r.ok)balance=r.balance;updateUI();
@@ -2701,7 +2775,7 @@
                 var cls=coinClass(side);
                 var realName=(typeof name==='string'&&name.indexOf('<')===-1)?name:null;
                 var av=realName?'<div style="display:flex;justify-content:center;margin-bottom:0.4rem;">'+getAvatarHTML(realName)+'</div>':'';
-                return'<div class="battle-player '+(isWinner?'is-winner':'')+'" style="min-width:150px;max-width:200px;">'+
+                return'<div class="battle-player cf-room-player '+(isWinner?'is-winner':'')+'">'+
                     av+
                     '<div class="battle-player-name">'+name+(showBot?' <span class="bot-tag">BOT</span>':'')+'</div>'+
                     '<div style="margin-top:0.75rem;display:flex;flex-direction:column;align-items:center;gap:0.3rem;">'+
@@ -2711,9 +2785,9 @@
 
             if(cf.status==='waiting'){
                 ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
-                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                <div class="cf-room-layout">
                     ${playerCard(cf.creator,side1,false,false)}
-                    <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="cf-room-center">
                         <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.06);border:3px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#555;">?</div>
                         <div style="margin-top:0.5rem;font-weight:800;color:var(--text-muted);">VS</div>
                     </div>
@@ -2729,9 +2803,9 @@
             if(cf.status==='flipping'&&!cfAnimRunning){
                 cfAnimRunning=true;
                 ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
-                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                <div class="cf-room-layout">
                     ${playerCard(cf.creator,side1,false,false)}
-                    <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:420px;">
+                    <div class="cf-room-center" style="max-width:420px;">
                         <div class="cf-flip-zone" id="cf-flip-zone">
                             <div class="cf-flip-shadow" id="cf-flip-shadow"></div>
                             <div class="cf-flip-coin cf-coin-heads" id="cf-flip-coin">H</div>
@@ -2882,9 +2956,9 @@
                 var rGlow=rIsHeads?'0 0 30px rgba(239,68,68,0.4)':'0 0 30px rgba(59,130,246,0.4)';
                 var rColor=rIsHeads?'#fca5a5':'#93c5fd';
                 ct.innerHTML=`<h2 class="section-title">Coinflip — $${fmt(cf.amount)}</h2>
-                <div style="display:flex;justify-content:center;gap:2rem;margin:2rem 0;flex-wrap:wrap;align-items:center;">
+                <div class="cf-room-layout">
                     ${playerCard(cf.creator,side1,cf.winner===cf.creator,false)}
-                    <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="cf-room-center">
                         <div class="${rCls}" style="width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.8rem;font-weight:900;box-shadow:${rGlow};">${rLetter}</div>
                         <div class="cf-result" style="color:${rColor};margin-top:0.75rem;font-size:1.3rem;">${cf.result.toUpperCase()}!</div>
                         <div style="font-weight:800;font-size:1.05rem;color:var(--text-main);margin-top:0.3rem;">${cf.winner} wins $${fmt(cf.amount*2)}</div>
@@ -3005,7 +3079,7 @@
             // Deduct bet server-side first.
             var pay=await apiCall('/api/balance',{amount:-bet});
             if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
-            balance=pay.balance;updateUI();
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(bet),'error');
 
             bjState={active:true,bet:bet,deck:bjNewDeck(),player:[],dealer:[],over:false,animating:true};
             document.getElementById('bj-area').style.display='flex';
