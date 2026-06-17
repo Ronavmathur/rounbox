@@ -1120,20 +1120,16 @@
         /* --- RO MASTERS --- */
         .rm-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
         .rm-panel { flex: 0 0 300px; }
-        .rm-game { flex: 1; position: relative; background: linear-gradient(180deg, #0a1628 0%, #152238 40%, #1a3050 100%); border-radius: 14px; border: 1px solid rgba(99,102,241,0.1); overflow: hidden; min-height: 400px; }
-        #rm-canvas { width: 100%; height: 400px; display: block; }
-        .rm-multiplier { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 3rem; font-weight: 900; color: white; text-shadow: 0 4px 20px rgba(0,0,0,0.5); pointer-events: none; z-index: 10; transition: color 0.3s; }
+        .rm-game { flex: 1; position: relative; background: linear-gradient(180deg, #0a1628 0%, #1a3a5c 70%, #1f5a8a 100%); border-radius: 14px; border: 1px solid rgba(99,102,241,0.1); overflow: hidden; min-height: 420px; box-shadow: inset 0 0 60px rgba(0,0,0,0.35); }
+        #rm-canvas { width: 100%; height: 420px; display: block; }
+        .rm-multiplier { position: absolute; top: 14px; right: 16px; font-size: 2.2rem; font-weight: 900; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 22px rgba(99,102,241,0.4); pointer-events: none; z-index: 10; transition: color 0.2s, transform 0.12s; letter-spacing: -1px; }
+        .rm-multiplier.pop { transform: scale(1.18); }
         .rm-multiplier.boom { color: #ef4444; }
         .rm-multiplier.win { color: #4ade80; }
         .rm-info { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.75rem; text-align: center; margin-bottom: 1rem; }
         .rm-info-mult { font-size: 1.4rem; font-weight: 900; color: var(--text-main); }
         .rm-info-payout { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin-top: 0.2rem; }
-        .rm-events { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-        .rm-event { position: absolute; font-size: 1.1rem; font-weight: 900; animation: rmFloat 1.5s ease-out forwards; pointer-events: none; }
-        .rm-event.pickup { color: #4ade80; }
-        .rm-event.bomb { color: #ef4444; }
-        @keyframes rmFloat { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-40px) scale(0.7); } }
-        @media(max-width:768px) { .rm-layout { flex-direction: column; } .rm-panel { flex: none; width: 100%; } #rm-canvas { height: 300px; } }
+        @media(max-width:768px) { .rm-layout { flex-direction: column; } .rm-panel { flex: none; width: 100%; } #rm-canvas { height: 300px; } .rm-game { min-height: 300px; } .rm-multiplier { font-size: 1.7rem; } }
 
         @media(max-width:480px){
             .bj-card{width:60px;height:86px;}
@@ -1744,7 +1740,6 @@
                 <div class="rm-game" id="rm-game">
                     <canvas id="rm-canvas"></canvas>
                     <div class="rm-multiplier" id="rm-multiplier">1.00x</div>
-                    <div class="rm-events" id="rm-events"></div>
                 </div>
             </div>
 
@@ -4533,93 +4528,132 @@
         });
 
         // --- RO MASTERS ---
-        var rmState = { active: false, bet: 0, multiplier: 1, targetMult: 0, crashed: false, elapsed: 0, events: [], eventIdx: 0, seed: '', duration: 0, willCrash: false };
+        // Side-scrolling plane game. Outcome is predetermined; a sequence of
+        // segments (pickups/bombs/strips/water) is generated so the plane either
+        // crashes into the water or lands on a strip at a target multiplier.
+        var rmState = {
+            active: false, bet: 0, multiplier: 1, finalMult: 0, willLand: false,
+            crashed: false, landed: false, finished: false,
+            seed: '', segments: [], segIdx: 0,
+            scroll: 0, planeY: 0, planeVY: 0, targetY: 0
+        };
         var rmRAF = null;
-        var rmStartTime = 0;
+        var rmLastTime = 0;
         var rmClouds = null;
         var rmShake = 0;
         var rmParticles = [];
+        var rmFloaters = [];   // floating "+2x" / "BOMB /2" labels on canvas
+        var rmWavePhase = 0;
+
+        var RM_SEG_W = 220;          // world px per segment
+        var RM_SPEED = 150;          // world px/sec scroll speed
+        var RM_GRAVITY = 18;         // downward drift px/sec^2 (gentle)
+        var RM_BOOST = -150;         // upward velocity kick on pickup
+        var RM_DROP = 150;           // downward velocity kick on bomb
 
         function rmGenerateSeed() {
-            var chars = 'abcdef0123456789';
-            var s = '';
+            var chars = 'abcdef0123456789', s = '';
             for (var i = 0; i < 32; i++) s += chars[Math.floor(Math.random() * chars.length)];
             return s;
         }
 
-        // Final multiplier sampled from a tuned bucket distribution.
-        // Mean payout ~= 0.968 (~3.2% house edge); verified via Monte Carlo.
-        function rmGenerateTarget() {
-            var r = Math.random() * 100;
-            if (r < 56.64) return Math.round((Math.random() * 0.6) * 100) / 100;        // bust 0-0.6x
-            if (r < 68.64) return Math.round((0.6 + Math.random() * 0.4) * 100) / 100;   // 0.6-1x
-            if (r < 94.31) return Math.round((1 + Math.random() * 1) * 100) / 100;       // 1-2x
-            if (r < 99.31) return Math.round((2 + Math.random() * 3) * 100) / 100;       // 2-5x
-            if (r < 99.91) return Math.round((5 + Math.random() * 15) * 100) / 100;      // 5-20x
-            if (r < 99.99) return Math.round((20 + Math.random() * 80) * 100) / 100;     // 20-100x
-            return Math.round((100 + Math.random() * 150) * 100) / 100;                  // 100-250x
-        }
+        // Decide the outcome, then build a segment sequence that produces it.
+        function rmGenerateRound() {
+            var r = Math.random();
+            var willLand, finalMult;
+            if (r < 0.45) { willLand = false; finalMult = 0; }                       // 45% crash
+            else if (r < 0.75) { willLand = true; finalMult = 1 + Math.random() * 2; }   // 30% 1-3x
+            else if (r < 0.90) { willLand = true; finalMult = 3 + Math.random() * 7; }   // 15% 3-10x
+            else if (r < 0.97) { willLand = true; finalMult = 10 + Math.random() * 40; } // 7% 10-50x
+            else { willLand = true; finalMult = 50 + Math.random() * 200; }              // 3% 50-250x
+            finalMult = Math.round(finalMult * 100) / 100;
 
-        function rmGenerateEvents(target) {
-            var events = [];
-            var current = 1;
-            var duration = 5000 + Math.min(target, 50) * 400;
-            var numEvents = 4 + Math.floor(Math.random() * 4);
-            var willCrash = target < 1;
-            var finalTarget = target;
+            var segments = [];
+            var pickVals = [2, 3, 4, 5];
 
-            var pickups = [2, 3, 5, 10, 20];
-            var bombs = [0.75, 0.5, 0.25];
-            var bombLabels = ['-25%', '-50%', '-75%'];
+            // Build a multiplier path. We need product of pickups / 2^(bombs) to
+            // reach finalMult (for landing). We interleave a few bombs for drama.
+            var mult = 1;
+            // lead-in empty runway segment
+            segments.push({ type: 'empty' });
+            segments.push({ type: 'empty' });
 
-            for (var i = 0; i < numEvents; i++) {
-                var t = ((i + 1) / (numEvents + 1)) * duration;
-                var remaining = finalTarget / current;
-
-                if (i === numEvents - 1) {
-                    if (remaining > 1) {
-                        var pick = Math.min(remaining, 20);
-                        pick = Math.round(pick * 10) / 10;
-                        events.push({ time: t, type: 'pickup', value: pick, label: 'x' + pick });
-                        current *= pick;
-                    } else {
-                        var reduction = 1 - remaining;
-                        var bi = reduction > 0.6 ? 2 : reduction > 0.35 ? 1 : 0;
-                        events.push({ time: t, type: 'bomb', value: bombs[bi], label: bombLabels[bi] });
-                        current *= bombs[bi];
-                    }
-                } else {
-                    if (Math.random() < 0.65 && current < finalTarget * 2) {
-                        var p = pickups[Math.floor(Math.random() * 3)];
-                        events.push({ time: t, type: 'pickup', value: p, label: 'x' + p });
-                        current *= p;
-                    } else {
-                        var b = Math.floor(Math.random() * 2);
-                        events.push({ time: t, type: 'bomb', value: bombs[b], label: bombLabels[b] });
-                        current *= bombs[b];
-                    }
+            if (willLand) {
+                // Choose how many bombs to sprinkle in (each halves the multiplier).
+                var bombCount = Math.random() < 0.6 ? (Math.random() < 0.5 ? 1 : 2) : 0;
+                // Account for bombs by aiming for finalMult * 2^bombCount via pickups.
+                var needed = finalMult * Math.pow(2, bombCount);
+                var picks = [];
+                var acc = 1, guard = 0;
+                while (acc < needed - 0.001 && guard < 40) {
+                    var v = pickVals[Math.floor(Math.random() * pickVals.length)];
+                    if (acc * v > needed && Math.random() < 0.5) v = 2; // soften overshoot
+                    picks.push(v); acc *= v; guard++;
                 }
+                // Fine-tune the final pickup so the product lands exactly on needed.
+                if (picks.length) {
+                    var withoutLast = acc / picks[picks.length - 1];
+                    var fix = needed / withoutLast;
+                    fix = Math.round(fix * 100) / 100;
+                    if (fix < 1.01) fix = 1.01;
+                    picks[picks.length - 1] = fix;
+                } else {
+                    picks.push(Math.max(1.01, Math.round(needed * 100) / 100));
+                }
+
+                // Interleave picks, bombs, the occasional empty / decorative strip.
+                var queue = [];
+                for (var i = 0; i < picks.length; i++) queue.push({ kind: 'pickup', value: picks[i] });
+                for (var b = 0; b < bombCount; b++) {
+                    // insert bomb at a random position (not first)
+                    var at = 1 + Math.floor(Math.random() * Math.max(1, queue.length));
+                    queue.splice(Math.min(at, queue.length), 0, { kind: 'bomb' });
+                }
+
+                for (var q = 0; q < queue.length; q++) {
+                    var item = queue[q];
+                    if (item.kind === 'pickup') {
+                        mult *= item.value;
+                        segments.push({ type: 'pickup', value: item.value });
+                    } else {
+                        mult /= 2;
+                        segments.push({ type: 'bomb' });
+                    }
+                    if (Math.random() < 0.35) segments.push({ type: 'empty' });
+                }
+                // approach + landing strip at the end, multiplier now == finalMult
+                segments.push({ type: 'empty' });
+                segments.push({ type: 'strip' });
+            } else {
+                // CRASH: a few events, then a bomb/water stretch the plane can't clear.
+                var n = 1 + Math.floor(Math.random() * 3);
+                for (var k = 0; k < n; k++) {
+                    if (Math.random() < 0.5) segments.push({ type: 'pickup', value: pickVals[Math.floor(Math.random() * pickVals.length)] });
+                    else segments.push({ type: 'bomb' });
+                    if (Math.random() < 0.4) segments.push({ type: 'empty' });
+                }
+                // Force a downward death: cluster of bombs then open water.
+                segments.push({ type: 'bomb' });
+                segments.push({ type: 'bomb' });
+                segments.push({ type: 'water' });
+                segments.push({ type: 'water' });
             }
-            return { events: events, duration: duration, willCrash: willCrash, finalMult: current };
+
+            return { willLand: willLand, finalMult: willLand ? finalMult : 0, segments: segments };
         }
 
         function rmInitClouds() {
             rmClouds = [];
-            // 3 parallax layers, different speeds + sizes
             var layers = [
-                { count: 4, speed: 0.018, scale: 0.55, alpha: 0.18 },
-                { count: 4, speed: 0.045, scale: 0.85, alpha: 0.28 },
-                { count: 3, speed: 0.085, scale: 1.25, alpha: 0.40 }
+                { count: 4, speed: 14, scale: 0.55, alpha: 0.16 },
+                { count: 4, speed: 34, scale: 0.85, alpha: 0.26 },
+                { count: 3, speed: 60, scale: 1.25, alpha: 0.38 }
             ];
             for (var l = 0; l < layers.length; l++) {
                 for (var i = 0; i < layers[l].count; i++) {
                     rmClouds.push({
-                        layer: l,
-                        x: Math.random(),
-                        y: 0.12 + Math.random() * 0.72,
-                        speed: layers[l].speed,
-                        scale: layers[l].scale,
-                        alpha: layers[l].alpha
+                        x: Math.random() * 1.4, y: 0.08 + Math.random() * 0.45,
+                        speed: layers[l].speed, scale: layers[l].scale, alpha: layers[l].alpha
                     });
                 }
             }
@@ -4636,6 +4670,18 @@
             var ctx = canvas.getContext('2d');
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
+
+        function rmDims() {
+            var canvas = document.getElementById('rm-canvas');
+            var dpr = window.devicePixelRatio || 1;
+            return { W: canvas.width / dpr, H: canvas.height / dpr };
+        }
+
+        // geometry helpers -----------------------------------------------------
+        function rmWaterLevel(H) { return H * 0.80; }   // y of water surface
+        function rmStripY(H) { return H * 0.66; }       // y where strip top sits
+        function rmLandY(H) { return rmStripY(H) - 14; } // plane center when landed
+        function rmPlaneX(W) { return W * 0.34; }        // plane fixed screen x
 
         function rmDrawCloud(ctx, x, y, s, alpha) {
             ctx.save();
@@ -4654,127 +4700,247 @@
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(tilt);
-            // body
+            // tail fin
+            ctx.fillStyle = crashed ? '#5a1414' : '#cbd5e1';
+            ctx.beginPath();
+            ctx.moveTo(-16, 0); ctx.lineTo(-24, -14); ctx.lineTo(-12, -2); ctx.closePath();
+            ctx.fill();
+            // fuselage
             ctx.fillStyle = crashed ? '#7a1f1f' : '#e2e8f0';
             ctx.beginPath();
-            ctx.moveTo(26, 0);
-            ctx.lineTo(-14, -9);
-            ctx.lineTo(-8, 0);
-            ctx.lineTo(-14, 9);
+            ctx.moveTo(30, 0);
+            ctx.quadraticCurveTo(10, -8, -18, -5);
+            ctx.lineTo(-20, 5);
+            ctx.quadraticCurveTo(8, 7, 30, 0);
             ctx.closePath();
             ctx.fill();
             // wing
-            ctx.fillStyle = crashed ? '#5a1414' : '#94a3b8';
+            ctx.fillStyle = crashed ? '#4a1010' : '#94a3b8';
             ctx.beginPath();
-            ctx.moveTo(2, 0);
-            ctx.lineTo(-10, -16);
-            ctx.lineTo(-2, 0);
-            ctx.closePath();
+            ctx.moveTo(6, 2); ctx.lineTo(-6, 18); ctx.lineTo(-12, 4); ctx.closePath();
             ctx.fill();
-            // cockpit
+            // cockpit window
             ctx.fillStyle = crashed ? '#ef4444' : '#6366f1';
             ctx.beginPath();
-            ctx.arc(8, -1, 3.4, 0, Math.PI * 2);
+            ctx.arc(14, -2, 3.2, 0, Math.PI * 2);
             ctx.fill();
+            // propeller hint
+            ctx.strokeStyle = crashed ? '#7a1f1f' : 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.moveTo(30, -6); ctx.lineTo(30, 6); ctx.stroke();
             ctx.restore();
         }
 
-        function rmDrawCanvas(now) {
-            var canvas = document.getElementById('rm-canvas');
-            if (!canvas) return;
-            var ctx = canvas.getContext('2d');
-            var dpr = window.devicePixelRatio || 1;
-            var W = canvas.width / dpr, H = canvas.height / dpr;
-            ctx.clearRect(0, 0, W, H);
+        function rmDrawPickup(ctx, x, y, value, t) {
+            var pulse = 1 + Math.sin(t * 5 + x) * 0.06;
+            var R = 22 * pulse;
+            ctx.save();
+            var g = ctx.createRadialGradient(x, y, 2, x, y, R + 10);
+            g.addColorStop(0, 'rgba(250,204,21,0.55)');
+            g.addColorStop(1, 'rgba(250,204,21,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(x, y, R + 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = '#3a2a00';
+            ctx.font = '900 ' + Math.round(15 * pulse) + 'px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            var lbl = (Math.round(value * 100) % 100 === 0) ? (value + 'x') : (value.toFixed(2) + 'x');
+            ctx.fillText(lbl, x, y + 1);
+            ctx.restore();
+        }
 
-            var t = (now || 0) / 1000;
+        function rmDrawBomb(ctx, x, y, t) {
+            ctx.save();
+            // body
+            ctx.fillStyle = '#1f2937';
+            ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.18)';
+            ctx.beginPath(); ctx.arc(x - 5, y - 6, 5, 0, Math.PI * 2); ctx.fill();
+            // fuse
+            ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(x + 7, y - 14); ctx.quadraticCurveTo(x + 16, y - 22, x + 12, y - 28); ctx.stroke();
+            // spark
+            var sp = 2.5 + Math.sin(t * 18) * 1.5;
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath(); ctx.arc(x + 12, y - 28, sp + 2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath(); ctx.arc(x + 12, y - 28, sp, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+
+        function rmDrawStrip(ctx, x, H) {
+            var sy = rmStripY(H);
+            var w = RM_SEG_W * 0.78;
+            ctx.save();
+            // support pillars to water
+            ctx.fillStyle = 'rgba(60,50,40,0.55)';
+            ctx.fillRect(x + 14, sy + 12, 8, rmWaterLevel(H) - sy - 12);
+            ctx.fillRect(x + w - 22, sy + 12, 8, rmWaterLevel(H) - sy - 12);
+            // platform
+            ctx.fillStyle = '#6b4f3a';
+            ctx.fillRect(x, sy, w, 16);
+            ctx.fillStyle = '#8a6b4f';
+            ctx.fillRect(x, sy, w, 5);
+            // runway dashes
+            ctx.fillStyle = '#e5e7eb';
+            for (var d = x + 10; d < x + w - 14; d += 26) ctx.fillRect(d, sy + 6, 14, 3);
+            ctx.restore();
+        }
+
+        function rmDrawWorld(ctx, W, H, t) {
+            // sky gradient
+            var sky = ctx.createLinearGradient(0, 0, 0, rmWaterLevel(H));
+            sky.addColorStop(0, '#0a1628');
+            sky.addColorStop(0.6, '#23507e');
+            sky.addColorStop(1, '#3b7fb8');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, W, rmWaterLevel(H));
 
             // parallax clouds
             if (rmClouds) {
                 for (var i = 0; i < rmClouds.length; i++) {
                     var c = rmClouds[i];
-                    var cx = ((1 - ((c.x + t * c.speed) % 1)) * (W + 120)) - 60;
+                    var span = W + 160;
+                    var cx = span - (((c.x * span) + rmScrollPx() * (c.speed / RM_SPEED)) % span);
                     rmDrawCloud(ctx, cx, c.y * H, c.scale, c.alpha);
                 }
             }
 
-            // plane position: enters from left, settles center-left
-            var prog = rmState.active ? Math.min(1, rmState.elapsed / 900) : 1;
-            var baseX = -40 + (W * 0.34 + 40) * (rmState.active ? Math.min(1, prog) : 1);
-            var baseY = H * 0.5;
-            // gentle bob
-            var bob = Math.sin(t * 2.2) * 6;
-            // tilt from recent event
-            var tilt = rmState.tilt || 0;
+            // scrolling world objects (pickups / bombs / strips / water markers)
+            var scroll = rmScrollPx();
+            var first = Math.floor((scroll - RM_SEG_W) / RM_SEG_W);
+            var last = first + Math.ceil(W / RM_SEG_W) + 3;
+            for (var s = first; s <= last; s++) {
+                if (s < 0 || s >= rmState.segments.length) continue;
+                var seg = rmState.segments[s];
+                var sxCenter = s * RM_SEG_W + RM_SEG_W / 2 - scroll + rmPlaneX(W);
+                var sxLeft = s * RM_SEG_W - scroll + rmPlaneX(W);
+                if (seg.type === 'pickup') rmDrawPickup(ctx, sxCenter, H * 0.40, seg.value, t);
+                else if (seg.type === 'bomb') rmDrawBomb(ctx, sxCenter, H * 0.46, t);
+                else if (seg.type === 'strip') rmDrawStrip(ctx, sxLeft + RM_SEG_W * 0.11, H);
+            }
+
+            // water
+            var wl = rmWaterLevel(H);
+            var wg = ctx.createLinearGradient(0, wl, 0, H);
+            wg.addColorStop(0, '#2a8fd0');
+            wg.addColorStop(1, '#0d3a63');
+            ctx.fillStyle = wg;
+            ctx.beginPath();
+            ctx.moveTo(0, wl);
+            for (var wx = 0; wx <= W; wx += 8) {
+                var wy = wl + Math.sin((wx * 0.03) + rmWavePhase) * 4 + Math.sin((wx * 0.07) - rmWavePhase * 1.3) * 2;
+                ctx.lineTo(wx, wy);
+            }
+            ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+            ctx.fill();
+            // surface highlight
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var hx = 0; hx <= W; hx += 8) {
+                var hy = wl + Math.sin((hx * 0.03) + rmWavePhase) * 4 + Math.sin((hx * 0.07) - rmWavePhase * 1.3) * 2;
+                if (hx === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+            }
+            ctx.stroke();
+        }
+
+        function rmScrollPx() { return rmState.scroll; }
+
+        function rmRender(now) {
+            var canvas = document.getElementById('rm-canvas');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var d = rmDims(); var W = d.W, H = d.H;
+            ctx.clearRect(0, 0, W, H);
+            var t = (now || 0) / 1000;
 
             var shakeX = 0, shakeY = 0;
             if (rmShake > 0) {
                 shakeX = (Math.random() - 0.5) * rmShake;
                 shakeY = (Math.random() - 0.5) * rmShake;
-                rmShake *= 0.88;
-                if (rmShake < 0.3) rmShake = 0;
+            }
+            ctx.save();
+            ctx.translate(shakeX, shakeY);
+
+            rmDrawWorld(ctx, W, H, t);
+
+            // plane
+            var px = rmPlaneX(W);
+            var py = rmState.planeY || H * 0.42;
+            var tilt = Math.max(-0.5, Math.min(0.5, (rmState.planeVY || 0) / 260));
+            if (rmState.landed) tilt = 0;
+            rmDrawPlane(ctx, px, py, tilt, rmState.crashed);
+
+            // floaters (+2x / BOMB /2)
+            for (var f = rmFloaters.length - 1; f >= 0; f--) {
+                var fl = rmFloaters[f];
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, fl.life);
+                ctx.fillStyle = fl.color;
+                ctx.font = '900 18px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(fl.text, fl.x, fl.y);
+                ctx.restore();
             }
 
-            var planeY = baseY + bob + (rmState.fallY || 0) + shakeY;
-            rmDrawPlane(ctx, baseX + shakeX, planeY, tilt, rmState.crashed);
-
-            // explosion particles
-            if (rmParticles.length) {
-                for (var p = rmParticles.length - 1; p >= 0; p--) {
-                    var pt = rmParticles[p];
-                    pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.25; pt.life -= 0.02;
-                    if (pt.life <= 0) { rmParticles.splice(p, 1); continue; }
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(0, pt.life);
-                    ctx.fillStyle = pt.color;
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                }
+            // particles (splash / explosion)
+            for (var p = rmParticles.length - 1; p >= 0; p--) {
+                var pt = rmParticles[p];
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, pt.life);
+                ctx.fillStyle = pt.color;
+                ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
             }
-            // decay tilt back to level
-            if (rmState.tilt) { rmState.tilt *= 0.92; if (Math.abs(rmState.tilt) < 0.005) rmState.tilt = 0; }
-
-            return { x: baseX + shakeX, y: planeY };
+            ctx.restore();
         }
 
-        function rmSpawnEvent(ev, planePos) {
-            var host = document.getElementById('rm-events');
-            if (!host) return;
-            var game = document.getElementById('rm-game');
-            var el = document.createElement('div');
-            el.className = 'rm-event ' + (ev.type === 'pickup' ? 'pickup' : 'bomb');
-            el.innerText = (ev.type === 'pickup' ? '+' : '') + ev.label;
-            var gw = game ? game.clientWidth : 400;
-            var px = planePos ? planePos.x : gw * 0.34;
-            el.style.left = Math.max(10, Math.min(gw - 60, px - 10)) + 'px';
-            el.style.top = (planePos ? planePos.y - 30 : 160) + 'px';
-            host.appendChild(el);
-            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1500);
+        function rmSpawnFloater(text, color, W, H) {
+            rmFloaters.push({ text: text, color: color, x: rmPlaneX(W), y: (rmState.planeY || H * 0.42) - 28, life: 1 });
         }
 
-        function rmSpawnExplosion(planePos) {
-            var px = planePos ? planePos.x : 140;
-            var py = planePos ? planePos.y : 200;
+        function rmSpawnSplash(x, y, color) {
+            color = color || '#9fd8ff';
+            for (var i = 0; i < 22; i++) {
+                var a = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+                var sp = 2 + Math.random() * 5;
+                rmParticles.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 3, life: 1, color: color });
+            }
+        }
+
+        function rmSpawnExplosion(x, y) {
             var colors = ['#ef4444', '#f97316', '#fbbf24', '#ffffff'];
-            for (var i = 0; i < 26; i++) {
+            for (var i = 0; i < 28; i++) {
                 var a = Math.random() * Math.PI * 2;
                 var sp = 2 + Math.random() * 5;
-                rmParticles.push({
-                    x: px, y: py,
-                    vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1,
-                    r: 2 + Math.random() * 3, life: 1,
-                    color: colors[Math.floor(Math.random() * colors.length)]
-                });
+                rmParticles.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, r: 2 + Math.random() * 3, life: 1, color: colors[Math.floor(Math.random() * colors.length)] });
             }
         }
 
-        function rmSetMultiplier(m, cls) {
+        function rmStepEffects(dt) {
+            rmWavePhase += dt * 1.6;
+            if (rmShake > 0) { rmShake *= Math.pow(0.001, dt); if (rmShake < 0.3) rmShake = 0; }
+            for (var f = rmFloaters.length - 1; f >= 0; f--) {
+                var fl = rmFloaters[f];
+                fl.y -= dt * 36; fl.life -= dt * 0.9;
+                if (fl.life <= 0) rmFloaters.splice(f, 1);
+            }
+            for (var p = rmParticles.length - 1; p >= 0; p--) {
+                var pt = rmParticles[p];
+                pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.25; pt.life -= dt * 1.1;
+                if (pt.life <= 0) rmParticles.splice(p, 1);
+            }
+        }
+
+        function rmSetMultiplier(m, cls, pop) {
             var el = document.getElementById('rm-multiplier');
             if (!el) return;
-            el.className = 'rm-multiplier' + (cls ? ' ' + cls : '');
+            el.className = 'rm-multiplier' + (cls ? ' ' + cls : '') + (pop ? ' pop' : '');
             el.innerText = m.toFixed(2) + 'x';
+            if (pop) setTimeout(function () { el.classList.remove('pop'); }, 130);
         }
 
         function rmUpdateInfo() {
@@ -4787,29 +4953,38 @@
             if (pa) pa.innerText = '$' + fmt(rmState.bet * Math.max(0, rmState.multiplier));
         }
 
+        function rmSetButton(state, text) {
+            var btn = document.getElementById('rm-bet-btn');
+            if (!btn) return;
+            btn.className = 'bet-panel-action ' + (state === 'win' ? 'cashout' : state === 'crash' ? 'crashed' : 'primary');
+            btn.disabled = (state !== 'idle');
+            btn.innerText = text;
+        }
+
         function rmCleanup() {
             if (rmRAF) { cancelAnimationFrame(rmRAF); rmRAF = null; }
-            rmParticles = [];
-            rmShake = 0;
+            rmParticles = []; rmFloaters = []; rmShake = 0;
+        }
+
+        function rmResetVisual() {
+            var d = rmDims();
+            rmState.multiplier = 1; rmState.crashed = false; rmState.landed = false;
+            rmState.finished = false; rmState.scroll = 0; rmState.segIdx = 0;
+            rmState.segments = []; rmState.planeVY = 0;
+            rmState.planeY = (d.H || 420) * 0.40;
+            rmSetMultiplier(1, '');
+            var info = document.getElementById('rm-info'); if (info) info.style.display = 'none';
         }
 
         function renderRoMastersPage() {
             if (!rmState.active) {
                 rmCleanup();
-                rmState.multiplier = 1;
-                rmState.crashed = false;
-                rmState.fallY = 0;
-                rmState.tilt = 0;
-                var btn = document.getElementById('rm-bet-btn');
-                if (btn) { btn.className = 'bet-panel-action primary'; btn.disabled = false; btn.innerText = 'Start Flight'; }
-                rmSetMultiplier(1, '');
-                var info = document.getElementById('rm-info'); if (info) info.style.display = 'none';
-                var ev = document.getElementById('rm-events'); if (ev) ev.innerHTML = '';
+                rmSetButton('idle', 'Start Flight');
             }
             if (!rmClouds) rmInitClouds();
             requestAnimationFrame(function () {
                 rmResize();
-                if (!rmState.active) { rmDrawCanvas(performance.now()); }
+                if (!rmState.active) { rmResetVisual(); rmRender(performance.now()); }
             });
         }
 
@@ -4821,129 +4996,195 @@
             if (bet <= 0) { showToast('Enter a valid bet amount', 'error'); return; }
             if (balance < bet) { showToast('Not enough balance', 'error'); return; }
 
-            // deduct bet server-side first
             var pay = await apiCall('/api/balance', { amount: -bet });
             if (!pay || !pay.ok) return showToast((pay && pay.msg) || 'Not enough balance', 'error');
-            balance = pay.balance; updateUI(); showToast('Spent -$' + fmt(bet), 'error');
+            balance = pay.balance; updateUI();
 
-            var target = rmGenerateTarget();
-            var gen = rmGenerateEvents(target);
+            var round = rmGenerateRound();
+            var d = rmDims();
+            rmCleanup();
             rmState = {
-                active: true, bet: bet, multiplier: 1, targetMult: gen.finalMult, crashed: false,
-                elapsed: 0, events: gen.events, eventIdx: 0, seed: rmGenerateSeed(),
-                duration: gen.duration, willCrash: gen.finalMult < 1, tilt: 0, fallY: 0
+                active: true, bet: bet, multiplier: 1,
+                finalMult: round.finalMult, willLand: round.willLand,
+                crashed: false, landed: false, finished: false,
+                seed: rmGenerateSeed(), segments: round.segments, segIdx: 0,
+                scroll: 0, planeY: d.H * 0.40, planeVY: 0, targetY: d.H * 0.40
             };
-
             var seedEl = document.getElementById('rm-seed');
             if (seedEl) seedEl.innerText = 'Seed: ' + rmState.seed;
-
-            var btn = document.getElementById('rm-bet-btn');
-            if (btn) { btn.disabled = true; btn.className = 'bet-panel-action primary'; btn.innerText = 'In Flight...'; }
-            var evHost = document.getElementById('rm-events'); if (evHost) evHost.innerHTML = '';
 
             if (!rmClouds) rmInitClouds();
             rmResize();
             rmSetMultiplier(1, '');
             rmUpdateInfo();
+            rmSetButton('flying', 'Flying... 1.00x');
 
-            rmStartTime = performance.now();
-            if (rmRAF) cancelAnimationFrame(rmRAF);
+            rmLastTime = performance.now();
             rmRAF = requestAnimationFrame(rmAnimate);
         }
 
-        function rmAnimate() {
+        function rmAnimate(now) {
             if (!rmState.active) { rmRAF = null; return; }
-            var now = performance.now();
-            rmState.elapsed = now - rmStartTime;
+            var dt = Math.min(0.05, (now - rmLastTime) / 1000);
+            rmLastTime = now;
+            var d = rmDims(); var W = d.W, H = d.H;
 
-            // trigger any due events
-            while (rmState.eventIdx < rmState.events.length &&
-                   rmState.elapsed >= rmState.events[rmState.eventIdx].time) {
-                var ev = rmState.events[rmState.eventIdx];
-                rmState.multiplier *= ev.value;
-                if (rmState.multiplier < 0.01) rmState.multiplier = 0.01;
-                rmState.eventIdx++;
-                var pos = rmDrawCanvas(now);
-                rmSpawnEvent(ev, pos);
-                if (ev.type === 'pickup') { rmState.tilt = -0.32; playTick(); }
-                else { rmState.tilt = 0.3; rmShake = 8; playTick(); }
-                rmSetMultiplier(rmState.multiplier, '');
-                rmUpdateInfo();
+            // scroll the world forward
+            rmState.scroll += RM_SPEED * dt;
+
+            // physics: gravity drift + velocity
+            rmState.planeVY += RM_GRAVITY * dt;
+            rmState.planeY += rmState.planeVY * dt;
+
+            // collision: plane sits at fixed screen x = rmPlaneX(W),
+            // i.e. world x = scroll. Which segment is under the plane?
+            var planeWorldX = rmState.scroll;
+            var idx = Math.floor(planeWorldX / RM_SEG_W);
+            if (idx >= 0 && idx < rmState.segments.length && idx >= rmState.segIdx) {
+                // trigger each newly-entered segment once, at its center
+                var segCenterWorld = idx * RM_SEG_W + RM_SEG_W / 2;
+                if (planeWorldX >= segCenterWorld) {
+                    var seg = rmState.segments[idx];
+                    rmState.segIdx = idx + 1;
+                    rmHitSegment(seg, W, H);
+                }
             }
 
-            rmDrawCanvas(now);
-            rmUpdateInfo();
+            // landing detection: over a strip and descended to landing altitude
+            var overStrip = false;
+            var idxStrip = Math.floor(planeWorldX / RM_SEG_W);
+            if (idxStrip >= 0 && idxStrip < rmState.segments.length && rmState.segments[idxStrip].type === 'strip') overStrip = true;
 
-            if (rmState.elapsed >= rmState.duration) {
-                rmFinish();
+            var landY = rmLandY(H);
+            if (rmState.willLand && overStrip) {
+                // ease the plane down onto the strip
+                rmState.planeVY = 0;
+                rmState.planeY += (landY - rmState.planeY) * Math.min(1, dt * 8);
+                if (Math.abs(rmState.planeY - landY) < 3) {
+                    rmFinishLand(W, H);
+                    return;
+                }
+            }
+
+            // clamp top
+            if (rmState.planeY < H * 0.12) { rmState.planeY = H * 0.12; if (rmState.planeVY < 0) rmState.planeVY = 0; }
+
+            // crash: hit the water
+            if (rmState.planeY >= rmWaterLevel(H) - 10) {
+                rmState.planeY = rmWaterLevel(H) - 10;
+                rmFinishCrash(W, H);
                 return;
             }
+
+            // safety: ran out of segments without landing => crash into water
+            if (idx >= rmState.segments.length) {
+                rmState.planeVY = Math.max(rmState.planeVY, 120);
+            }
+
+            rmStepEffects(dt);
+            rmRender(now);
+            rmSetButton('flying', 'Flying... ' + rmState.multiplier.toFixed(2) + 'x');
             rmRAF = requestAnimationFrame(rmAnimate);
         }
 
-        async function rmFinish() {
-            rmState.active = false;
+        function rmHitSegment(seg, W, H) {
+            if (seg.type === 'pickup') {
+                rmState.multiplier *= seg.value;
+                rmState.planeVY = RM_BOOST;
+                var lbl = (Math.round(seg.value * 100) % 100 === 0) ? seg.value : seg.value.toFixed(2);
+                rmSpawnFloater('+' + lbl + 'x', '#4ade80', W, H);
+                rmSetMultiplier(rmState.multiplier, '', true);
+                rmUpdateInfo();
+                playWin();
+            } else if (seg.type === 'bomb') {
+                rmState.multiplier /= 2;
+                rmState.planeVY = RM_DROP;
+                rmShake = 9;
+                rmSpawnFloater('BOMB /2', '#ef4444', W, H);
+                rmSetMultiplier(rmState.multiplier, '', true);
+                rmUpdateInfo();
+                playTick();
+            }
+            // 'strip', 'water', 'empty' have no immediate hit effect
+        }
+
+        async function rmFinishCrash(W, H) {
+            if (rmState.finished) return;
+            rmState.finished = true; rmState.active = false; rmState.crashed = true;
+            if (rmRAF) { cancelAnimationFrame(rmRAF); rmRAF = null; }
+            rmShake = 16;
+            rmSpawnSplash(rmPlaneX(W), rmWaterLevel(H), '#9fd8ff');
+            rmSpawnExplosion(rmPlaneX(W), rmWaterLevel(H) - 6);
+            rmSetMultiplier(rmState.multiplier, 'boom');
+            playCrash();
+            rmSetButton('crash', 'Crashed!');
+            showToast('Crashed into the water — lost $' + fmt(rmState.bet), 'error');
+
+            // splash-out animation
+            var start = performance.now();
+            (function fall() {
+                var elapsed = performance.now() - start;
+                var dt = 1 / 60;
+                rmState.planeY += 3;
+                rmStepEffects(dt);
+                rmRender(performance.now());
+                if (elapsed < 1400) requestAnimationFrame(fall);
+            })();
+
+            rmScheduleReset();
+        }
+
+        async function rmFinishLand(W, H) {
+            if (rmState.finished) return;
+            rmState.finished = true; rmState.active = false; rmState.landed = true;
             if (rmRAF) { cancelAnimationFrame(rmRAF); rmRAF = null; }
             var finalM = Math.max(0, rmState.multiplier);
-            var won = finalM >= 1;
-
-            if (rmState.willCrash || finalM < 1) {
-                // crash sequence: shake + explosion + plane falls
-                rmShake = 16;
-                var pos = rmDrawCanvas(performance.now());
-                rmState.crashed = true;
-                rmSpawnExplosion(pos);
-                rmSetMultiplier(finalM, 'boom');
-                playCrash();
-                // animate the plane falling off-screen
-                var fallStart = performance.now();
-                (function fall() {
-                    var dt = performance.now() - fallStart;
-                    rmState.fallY = (dt / 1000) * 400 + (dt / 1000) * (dt / 1000) * 300;
-                    rmShake *= 0.9;
-                    rmDrawCanvas(performance.now());
-                    if (dt < 1200) requestAnimationFrame(fall);
-                })();
-            }
+            rmState.planeY = rmLandY(H);
+            rmSetMultiplier(finalM, 'win');
 
             var payout = Math.round(rmState.bet * finalM * 100) / 100;
             if (payout > 0) {
                 var r = await apiCall('/api/balance', { amount: payout });
                 if (r && r.ok) { balance = r.balance; updateUI(); }
             }
+            playCashRegister();
+            if (finalM >= 5) fireConfetti(finalM >= 50 ? 160 : finalM >= 20 ? 120 : 90);
 
-            if (won) {
-                rmSetMultiplier(finalM, 'win');
-                playCashRegister();
-                var profit = payout - rmState.bet;
-                if (profit >= 0)
-                    showToast('Cashed in @ ' + finalM.toFixed(2) + 'x  +$' + fmt(profit), 'success');
-                else
-                    showToast('Landed @ ' + finalM.toFixed(2) + 'x  -$' + fmt(-profit), 'info');
-                if (finalM >= 10) fireConfetti(finalM >= 50 ? 140 : 100);
-            } else {
-                showToast('Crashed @ ' + finalM.toFixed(2) + 'x — lost $' + fmt(rmState.bet), 'error');
-            }
+            var profit = payout - rmState.bet;
+            if (profit >= 0) showToast('Landed @ ' + finalM.toFixed(2) + 'x  +$' + fmt(profit), 'success');
+            else showToast('Landed @ ' + finalM.toFixed(2) + 'x  -$' + fmt(-profit), 'info');
 
-            var btn = document.getElementById('rm-bet-btn');
-            if (btn) { btn.disabled = true; btn.innerText = won ? 'Landed ' + finalM.toFixed(2) + 'x' : 'Crashed'; }
+            rmSetButton('win', 'Landed! Won $' + fmt(payout));
+
+            // settle animation (a few frames of the plane resting + waves)
+            var start = performance.now();
+            (function rest() {
+                var elapsed = performance.now() - start;
+                rmStepEffects(1 / 60);
+                rmRender(performance.now());
+                if (elapsed < 1000) requestAnimationFrame(rest);
+            })();
+
+            rmScheduleReset();
+        }
+
+        function rmScheduleReset() {
             setTimeout(function () {
                 if (rmState.active) return;
-                var b = document.getElementById('rm-bet-btn');
-                if (b) { b.className = 'bet-panel-action primary'; b.disabled = false; b.innerText = 'Start Flight'; }
-                rmState.multiplier = 1; rmState.crashed = false; rmState.fallY = 0;
-                rmSetMultiplier(1, '');
-                var info = document.getElementById('rm-info'); if (info) info.style.display = 'none';
-                rmParticles = [];
-                rmDrawCanvas(performance.now());
-            }, 2600);
+                rmCleanup();
+                rmState.active = false;
+                rmResetVisual();
+                rmSetButton('idle', 'Start Flight');
+                var seedEl = document.getElementById('rm-seed'); if (seedEl) seedEl.innerText = '';
+                rmRender(performance.now());
+            }, 2200);
         }
 
         window.addEventListener('resize', function () {
             var p = document.getElementById('page-romasters');
             if (p && p.classList.contains('active')) {
                 rmResize();
-                if (!rmState.active) rmDrawCanvas(performance.now());
+                if (!rmState.active) rmRender(performance.now());
             }
         });
 
