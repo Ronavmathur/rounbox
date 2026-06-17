@@ -343,8 +343,8 @@ io.on('connection',(socket)=>{
 
 server.listen(PORT,'0.0.0.0',()=>{
     console.log(`\n  RoUnbox server running at:`);
-    console.log(`  Local:   http://localhost:${PORT}/gemini-code-1781564142347.html`);
+    console.log(`  Local:   http://localhost:${PORT}`);
     const nets=require('os').networkInterfaces();
-    for(const name of Object.keys(nets))for(const net of nets[name])if(net.family==='IPv4'&&!net.internal)console.log(`  Network: http://${net.address}:${PORT}/gemini-code-1781564142347.html`);
+    for(const name of Object.keys(nets))for(const net of nets[name])if(net.family==='IPv4'&&!net.internal)console.log(`  Network: http://${net.address}:${PORT}`);
     console.log(`\n  Share the Network URL with friends!\n`);
 });
