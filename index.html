@@ -2193,7 +2193,7 @@
                         const tc=isTeam?(i<ts?'box-shadow:inset 0 3px 0 #3b82f6;':'box-shadow:inset 0 3px 0 #ef4444;'):'';
                         if(p){
                             return`<div class="arena-col" style="${tc}">
-                                <div class="arena-stage" style="display:flex;align-items:center;">${buildReelPreview(firstWaitCase,false)}</div>
+                                <div class="arena-stage">${buildIdleTrackHTML(firstWaitCase)}</div>
                                 <div class="arena-playerbar">
                                     ${getAvatarHTML(p,'arena-pb-avatar')}
                                     <div class="arena-pb-meta"><div class="arena-pb-name">${p}${ib?' <span class="bot-tag">BOT</span>':''}</div></div>
@@ -2201,8 +2201,8 @@
                             </div>`;
                         }
                         const addBtn=isCr?`<button class="btn-demo" style="padding:0.3rem 0.8rem;font-size:0.78rem;" onclick="addBotToSlot('${b.id}')">+ Bot</button>`:'';
-                        return`<div class="arena-col" style="${tc}">
-                            <div class="arena-stage" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;opacity:0.45;">
+                        return`<div class="arena-col" style="${tc};opacity:0.4;">
+                            <div class="arena-stage" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;">
                                 <div style="font-size:0.95rem;font-weight:800;color:var(--text-muted);">Empty</div>
                                 ${addBtn}
                             </div>
@@ -2294,24 +2294,20 @@
         }
         var ARENA_ITEM_H=90;
 
-        // Static (non-animated) vertical reel preview shown in the waiting room.
-        // Builds a short track from the case's item pool, centered on a random item.
-        function buildReelPreview(caseObj,dim){
+        function buildIdleTrackHTML(caseObj){
             const pool=caseObj?caseObj.normal.filter(([id])=>id!=='GOLD').map(([id])=>getItem(id)):[getItem('dirt')];
             const safePool=pool.length?pool:[getItem('dirt')];
-            const COUNT=7;
+            const COUNT=9;
             const items=[];
             for(let i=0;i<COUNT;i++)items.push(safePool[Math.floor(Math.random()*safePool.length)]);
-            // pick a random "centered" item — give it a glow only (no name/price text)
             const centerIdx=Math.floor(COUNT/2);
             let html='';
             items.forEach((it,i)=>{
-                const node=createArenaSpinItem(it).replace('class="arena-spin-item"',i===centerIdx?'class="arena-spin-item active"':'class="arena-spin-item"');
-                html+=node;
+                html+=createArenaSpinItem(it);
             });
-            // offset the track so the centered item sits in the visible middle (~200px tall preview, 90px items)
-            const offset=(centerIdx*ARENA_ITEM_H)-(200/2)+(ARENA_ITEM_H/2);
-            return`<div class="reel-preview"${dim?' style="opacity:0.45;"':''}><div class="arena-reel-track" style="transform:translateY(-${offset}px);">${html}</div></div>`;
+            const stageH=260;
+            const offset=(centerIdx*ARENA_ITEM_H)-(stageH/2)+(ARENA_ITEM_H/2);
+            return'<div class="arena-reel-track" style="transform:translateY(-'+offset+'px);">'+html+'</div>';
         }
 
         // --- New Battle Animation (item cycling / tease) ---
