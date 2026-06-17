@@ -37,7 +37,86 @@
 
             /* single source of truth for reel item width (JS reads this) */
             --reel-item-width: 220px;
+
+            --bg-page: #06080e;
+            --card-shadow: none;
+            --input-bg: rgba(255,255,255,0.04);
+            --input-border: rgba(255,255,255,0.07);
         }
+
+        /* --- LIGHT THEME OVERRIDES --- */
+        html.light-theme {
+            --bg-main: #f8f9fb;
+            --bg-nav: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f3f7;
+
+            --text-main: #1a1a2e;
+            --text-muted: #6b7280;
+            --border-light: rgba(0, 0, 0, 0.08);
+
+            --btn-demo-bg: #e5e7eb;
+            --btn-demo-text: #374151;
+            --btn-demo-hover: #d1d5db;
+
+            --bg-page: #eef1f6;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05);
+            --input-bg: #ffffff;
+            --input-border: rgba(0,0,0,0.12);
+        }
+        html.light-theme { background-color: var(--bg-page); }
+        html.light-theme body { background-color: transparent; }
+        html.light-theme #starfield { display: none !important; }
+
+        /* light theme: soften the heavy dark UI accents */
+        html.light-theme .cart-btn { background: #eef1f6; color: #1a1a2e; border-color: rgba(0,0,0,0.08); }
+        html.light-theme .cart-btn:hover { background: #e2e7f0; }
+        html.light-theme .cart-badge { background: #1a1a2e; color: #fff; }
+        html.light-theme .profile-btn { background: #eef1f6; }
+        html.light-theme .hamburger span { background: #1a1a2e; }
+        html.light-theme .hamburger:hover { background: rgba(0,0,0,0.06); }
+
+        html.light-theme .grid-item,
+        html.light-theme .battle-card,
+        html.light-theme .cf-card,
+        html.light-theme .battle-player,
+        html.light-theme .battle-topbar,
+        html.light-theme .battle-arena,
+        html.light-theme .history-col,
+        html.light-theme .wait-player-bar,
+        html.light-theme .admin-stat { box-shadow: var(--card-shadow); }
+        html.light-theme .grid-item:hover { border-color: rgba(0,0,0,0.15); }
+
+        html.light-theme .login-input,
+        html.light-theme .admin-search { background: var(--input-bg); border-color: var(--input-border); color: var(--text-main); }
+        html.light-theme .login-input::placeholder,
+        html.light-theme .admin-search::placeholder { color: #9ca3af; }
+        html.light-theme .login-input:focus { border-color: #3b82f6; }
+
+        html.light-theme .reel-container { border-color: rgba(0,0,0,0.05); background: radial-gradient(circle at center, rgba(0,0,0,0.02) 0%, transparent 70%); }
+        html.light-theme .qty-selector { background: #eef1f6; border-color: rgba(0,0,0,0.1); }
+        html.light-theme .qty-btn { color: #6b7280; }
+        html.light-theme .qty-btn:hover { background: rgba(0,0,0,0.06); color: #1a1a2e; }
+        html.light-theme .qty-text { color: #1a1a2e; }
+
+        html.light-theme .sidebar-links a:hover,
+        html.light-theme .sidebar-links a.active { background: rgba(0,0,0,0.03); }
+        html.light-theme .login-box { background: #fff; border-color: rgba(0,0,0,0.08); box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
+        html.light-theme .login-tab.active { background: rgba(0,0,0,0.06); color: #1a1a2e; }
+        html.light-theme .login-tabs { border-color: rgba(0,0,0,0.1); }
+        html.light-theme .login-logo { color: #1a1a2e; }
+        html.light-theme .login-logo svg path,
+        html.light-theme .logo svg path { fill: #1a1a2e; }
+
+        html.light-theme .admin-table th { border-color: rgba(0,0,0,0.08); }
+        html.light-theme .admin-table td { border-color: rgba(0,0,0,0.04); }
+        html.light-theme .admin-table tr:hover td { background: rgba(0,0,0,0.02); }
+        html.light-theme .admin-stat { background: #fff; border-color: rgba(0,0,0,0.06); }
+
+        html.light-theme .theme-toggle { color: #6b7280; }
+        html.light-theme .theme-toggle:hover { background: rgba(0,0,0,0.06); color: #1a1a2e; }
+        html.light-theme #login-page { background: rgba(248,249,251,0.97); }
+        html.light-theme .landing-hero h1 { color: #1a1a2e; }
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
@@ -867,14 +946,167 @@
             .bj-deck-stack{right:10px;top:10px;width:60px;height:86px;}
             .bj-deck-card{width:60px;height:86px;}
         }
+
+        /* --- THEME TOGGLE BUTTON --- */
+        .theme-toggle{
+            background:transparent;border:none;cursor:pointer;color:var(--text-muted);
+            width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+            transition:.2s;flex-shrink:0;
+        }
+        .theme-toggle:hover{background:rgba(255,255,255,0.08);color:var(--text-main);}
+        .theme-toggle svg{width:20px;height:20px;}
+        .theme-toggle .icon-sun{display:none;}
+        .theme-toggle .icon-moon{display:block;}
+        html.light-theme .theme-toggle .icon-sun{display:block;}
+        html.light-theme .theme-toggle .icon-moon{display:none;}
+        .sidebar-theme-toggle{width:100%;justify-content:center;gap:0.6rem;border:1px solid var(--border-light);border-radius:8px;height:auto;padding:0.6rem;font-family:inherit;font-weight:700;font-size:0.9rem;}
+        .sidebar-theme-toggle .tt-label{font-size:0.9rem;}
+        .sidebar-theme-toggle .tt-label-light{display:none;}
+        html.light-theme .sidebar-theme-toggle .tt-label-light{display:inline;}
+        html.light-theme .sidebar-theme-toggle .tt-label-dark{display:none;}
+        @media(max-width:640px){ .nav-right .theme-toggle{display:none;} }
+
+        /* --- LANDING PAGE --- */
+        .landing{
+            position:relative;z-index:5;width:100%;min-height:100vh;
+            display:flex;flex-direction:column;align-items:center;
+        }
+        .landing-nav{
+            width:100%;display:flex;justify-content:space-between;align-items:center;
+            padding:1.5rem clamp(1.25rem,5vw,4rem);position:absolute;top:0;left:0;z-index:10;
+        }
+        .landing-nav .logo{font-size:1.4rem;}
+        .landing-nav-actions{display:flex;align-items:center;gap:0.5rem;}
+        .landing-login-link{
+            background:transparent;border:1px solid var(--border-light);color:var(--text-main);
+            padding:0.55rem 1.3rem;border-radius:10px;font-weight:700;font-size:0.92rem;cursor:pointer;
+            font-family:inherit;transition:.2s;
+        }
+        .landing-login-link:hover{background:rgba(255,255,255,0.06);}
+        html.light-theme .landing-login-link:hover{background:rgba(0,0,0,0.04);}
+
+        .landing-hero{
+            display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+            min-height:100vh;padding:8rem clamp(1.25rem,5vw,2rem) 5rem;max-width:900px;
+        }
+        .landing-badge{
+            display:inline-flex;align-items:center;gap:0.5rem;
+            background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);
+            color:#4ade80;padding:0.4rem 1rem;border-radius:100px;
+            font-size:0.82rem;font-weight:700;margin-bottom:2rem;
+        }
+        .landing-hero h1{
+            font-size:clamp(2.5rem,7vw,4.75rem);font-weight:900;line-height:1.04;
+            letter-spacing:-2px;margin-bottom:1.5rem;color:#fff;
+            background:linear-gradient(180deg,#ffffff 0%,#b6c0d6 100%);
+            -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+        }
+        html.light-theme .landing-hero h1{
+            background:linear-gradient(180deg,#1a1a2e 0%,#4b5563 100%);
+            -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+        }
+        .landing-hero p.sub{
+            font-size:clamp(1.05rem,2.5vw,1.35rem);color:var(--text-muted);font-weight:500;
+            max-width:620px;line-height:1.55;margin-bottom:2.75rem;
+        }
+        .landing-cta{
+            display:inline-flex;align-items:center;gap:0.6rem;
+            background:linear-gradient(135deg,#4ade80,#22c55e);color:#04210f;
+            padding:1rem 2.5rem;border:none;border-radius:14px;font-size:1.15rem;font-weight:800;
+            cursor:pointer;font-family:inherit;transition:transform .2s,box-shadow .2s;
+            box-shadow:0 10px 30px rgba(74,222,128,0.25);
+        }
+        .landing-cta:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(74,222,128,0.35);}
+        .landing-cta svg{width:20px;height:20px;}
+
+        .landing-modes{
+            width:100%;max-width:1100px;padding:2rem clamp(1.25rem,5vw,2rem) 6rem;
+        }
+        .landing-modes-head{text-align:center;margin-bottom:3rem;}
+        .landing-modes-head h2{font-size:clamp(1.8rem,4vw,2.75rem);font-weight:900;letter-spacing:-1px;color:var(--text-main);margin-bottom:0.75rem;}
+        .landing-modes-head p{font-size:1.05rem;color:var(--text-muted);font-weight:500;}
+        .landing-mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;}
+        .landing-mode-card{
+            background:var(--bg-card);border:1px solid var(--border-light);border-radius:18px;
+            padding:2rem 1.5rem;text-align:center;transition:transform .25s,border-color .25s,box-shadow .25s;
+            box-shadow:var(--card-shadow);
+        }
+        .landing-mode-card:hover{transform:translateY(-6px);border-color:rgba(74,222,128,0.4);}
+        .landing-mode-icon{
+            font-size:2.5rem;width:72px;height:72px;border-radius:18px;
+            display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;
+            background:linear-gradient(135deg,rgba(74,222,128,0.12),rgba(59,130,246,0.12));
+        }
+        .landing-mode-card h3{font-size:1.2rem;font-weight:800;color:var(--text-main);margin-bottom:0.6rem;}
+        .landing-mode-card p{font-size:0.9rem;color:var(--text-muted);font-weight:500;line-height:1.5;}
+        @media(max-width:880px){ .landing-mode-grid{grid-template-columns:repeat(2,1fr);} }
+        @media(max-width:480px){ .landing-mode-grid{grid-template-columns:1fr;} .landing-nav{padding:1rem 1.25rem;} }
     </style>
 </head>
 <body>
 
     <canvas id="starfield"></canvas>
 
-    <div id="login-page">
+    <div id="landing-page">
+        <div class="landing">
+            <div class="landing-nav">
+                <div class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#fff"/></svg>
+                    RoUnbox
+                </div>
+                <div class="landing-nav-actions">
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    </button>
+                    <button class="landing-login-link" onclick="openLogin()">Log In</button>
+                </div>
+            </div>
+
+            <div class="landing-hero">
+                <div class="landing-badge">🎁 Open. Battle. Win.</div>
+                <h1>The Ultimate Case Opening Experience</h1>
+                <p class="sub">Open packs, battle friends, flip coins, and play blackjack — all in one place.</p>
+                <button class="landing-cta" onclick="openLogin()">
+                    Get Started
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
+
+            <div class="landing-modes">
+                <div class="landing-modes-head">
+                    <h2>One platform. Four ways to play.</h2>
+                    <p>Everything you need for the ultimate unboxing experience.</p>
+                </div>
+                <div class="landing-mode-grid">
+                    <div class="landing-mode-card">
+                        <div class="landing-mode-icon">📦</div>
+                        <h3>Packs</h3>
+                        <p>Open premium cases and reveal rare, epic, and legendary items.</p>
+                    </div>
+                    <div class="landing-mode-card">
+                        <div class="landing-mode-icon">⚔️</div>
+                        <h3>Battles</h3>
+                        <p>Go head-to-head with friends and bots in live case battles.</p>
+                    </div>
+                    <div class="landing-mode-card">
+                        <div class="landing-mode-icon">🪙</div>
+                        <h3>Coinflip</h3>
+                        <p>Pick a side and flip for double-or-nothing in seconds.</p>
+                    </div>
+                    <div class="landing-mode-card">
+                        <div class="landing-mode-icon">🃏</div>
+                        <h3>Blackjack</h3>
+                        <p>Hit, stand, and double down against the dealer to 21.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-page" style="display:none">
         <div class="login-box">
+            <div style="text-align:center;margin-bottom:0.5rem;"><span onclick="closeLogin()" style="color:var(--text-muted);font-size:0.8rem;font-weight:700;cursor:pointer;">&larr; Back to home</span></div>
             <div class="login-logo">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#fff"/></svg>
                 RoUnbox
@@ -946,6 +1178,10 @@
             <button class="wallet-btn" style="cursor:default;pointer-events:none;">
                 $ <span id="bal-display">0.00</span>
             </button>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
             <button class="logout-btn" onclick="handleLogout()">Logout</button>
             <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
         </div>
@@ -969,6 +1205,11 @@
             <a onclick="showPage('admin');toggleSidebar();" id="sb-admin" class="admin-nav-link" style="display:none">Admin</a>
         </div>
         <div class="sidebar-bottom">
+            <button class="theme-toggle sidebar-theme-toggle" onclick="toggleTheme()">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <span class="tt-label tt-label-dark">Dark Mode</span><span class="tt-label tt-label-light">Light Mode</span>
+            </button>
             <button class="cart-btn" onclick="showPage('inventory');toggleSidebar();">
                 Cart <div class="cart-badge" id="sb-inv-count">0</div>
             </button>
@@ -1577,8 +1818,25 @@
             return !!res.hasAdmin;
         }
 
+        // --- THEME SYSTEM ---
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.toggle('light-theme');
+            localStorage.setItem('rounbox_theme', isLight ? 'light' : 'dark');
+            var sf = document.getElementById('starfield');
+            if (sf) sf.style.display = isLight ? 'none' : '';
+        }
+        (function applySavedTheme(){
+            if (localStorage.getItem('rounbox_theme') === 'light') {
+                document.documentElement.classList.add('light-theme');
+                var sf = document.getElementById('starfield');
+                if (sf) sf.style.display = 'none';
+            }
+        })();
+
         async function showLoginUI() {
-            document.getElementById('login-page').style.display = 'flex';
+            // show the landing page; the login modal is opened from there
+            document.getElementById('landing-page').style.display = '';
+            document.getElementById('login-page').style.display = 'none';
             document.querySelector('nav').style.display = 'none';
             document.querySelector('main').style.display = 'none';
             const adminExists = await hasAdmin();
@@ -1591,7 +1849,15 @@
             }
         }
 
+        function openLogin() {
+            document.getElementById('login-page').style.display = 'flex';
+        }
+        function closeLogin() {
+            document.getElementById('login-page').style.display = 'none';
+        }
+
         function showGameUI() {
+            document.getElementById('landing-page').style.display = 'none';
             document.getElementById('login-page').style.display = 'none';
             document.querySelector('nav').style.display = '';
             document.querySelector('main').style.display = '';
