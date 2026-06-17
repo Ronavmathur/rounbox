@@ -12,18 +12,18 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
-            --bg-main: #0a0d14;
-            --bg-nav: #0f1219;
-            --bg-card: #151a23;
-            --bg-card-hover: #1b222d;
+            --bg-main: #0c1220;
+            --bg-nav: #111827;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
 
             --text-main: #ffffff;
             --text-muted: #8b92a5;
             --border-light: rgba(255, 255, 255, 0.05);
 
-            --btn-open-bg: #4ade80;
+            --btn-open-bg: #22c55e;
             --btn-open-text: #ffffff;
-            --btn-open-hover: #22c55e;
+            --btn-open-hover: #16a34a;
 
             --btn-demo-bg: #374151;
             --btn-demo-text: #e2e8f0;
@@ -140,6 +140,13 @@
             background-color: #06080e;
         }
 
+        /* --- CONFETTI CANVAS --- */
+        #confetti-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 5000; pointer-events: none;
+        }
+
         /* --- NAVBAR --- */
         nav {
             display: flex; justify-content: space-between; align-items: center;
@@ -147,6 +154,14 @@
             border-bottom: 1px solid var(--border-light);
             position: sticky; top: 0; z-index: 1000;
         }
+        nav::after {
+            content: ''; position: absolute; left: 0; bottom: -1px; width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(74,222,128,0.5), rgba(59,130,246,0.5), transparent);
+            pointer-events: none;
+        }
+        .nav-links a.nav-home-link { display: flex; align-items: center; gap: 0.4rem; }
+        .nav-links a.nav-home-link svg { width: 16px; height: 16px; }
+        .sidebar-links a .sb-icon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 0.55rem; }
         .nav-left { display: flex; align-items: center; gap: 3rem; }
         .logo {
             font-size: 1.3rem; font-weight: 800; color: var(--text-main);
@@ -216,9 +231,13 @@
         .sidebar-bottom .logout-btn{width:100%;text-align:center;}
 
         /* --- LAYOUT --- */
-        main { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; position: relative; z-index: 10; }
+        main { max-width: 1400px; margin: 0 auto; padding: 3.25rem 1.5rem; position: relative; z-index: 10; }
         .page { display: none; }
-        .page.active { display: block; }
+        .page.active { display: block; animation: pageFadeIn 0.32s ease; }
+        @keyframes pageFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* muted subtitle below section titles */
+        .section-subtitle { color: var(--text-muted); font-size: 0.95rem; font-weight: 600; margin: -0.9rem 0 1.75rem; line-height: 1.45; }
 
         .back-link {
             color: var(--text-muted); font-size: 0.9rem; cursor: pointer;
@@ -228,8 +247,8 @@
 
         /* --- PURE CSS PACK DESIGN --- */
         .css-pack {
-            width: 160px;
-            height: 230px;
+            width: 180px;
+            height: 250px;
             background: linear-gradient(135deg, var(--c1), var(--c2));
             border-radius: 4px;
             position: relative;
@@ -287,7 +306,7 @@
 
         .opening-header { display: flex; align-items: flex-end; gap: 1.25rem; margin: 0.25rem 0 2.25rem; }
         .opening-pack { width: 99px; height: 142px; flex-shrink: 0; }
-        .opening-pack .css-pack { transform: scale(0.62); transform-origin: top left; margin: 0; }
+        .opening-pack .css-pack { transform: scale(0.55); transform-origin: top left; margin: 0; }
         .opening-meta { display: flex; flex-direction: column; padding-bottom: 6px; }
 
         .case-header-title { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: var(--text-main); }
@@ -360,14 +379,15 @@
 
         .btn-open {
             background: var(--btn-open-bg); color: var(--btn-open-text); font-weight: 700; border: none;
-            padding: 0 2.2rem; height: 44px; border-radius: 6px; cursor: pointer; font-size: 1.05rem; transition: 0.2s;
+            padding: 0 2.4rem; height: 48px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: 0.2s;
+            box-shadow: 0 4px 14px rgba(34,197,94,0.28);
         }
-        .btn-open:hover:not(:disabled) { background: var(--btn-open-hover); }
-        .btn-open:disabled { filter: brightness(0.6); cursor: not-allowed; }
+        .btn-open:hover:not(:disabled) { background: var(--btn-open-hover); box-shadow: 0 6px 18px rgba(34,197,94,0.38); }
+        .btn-open:disabled { filter: brightness(0.6); cursor: not-allowed; box-shadow: none; }
 
         .btn-demo {
             background: var(--btn-demo-bg); color: var(--btn-demo-text); font-weight: 700;
-            border: none; padding: 0 1.8rem; height: 44px; border-radius: 6px; cursor: pointer; font-size: 1.05rem; transition: 0.2s;
+            border: none; padding: 0 2rem; height: 48px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: 0.2s;
         }
         .btn-demo:hover:not(:disabled) { background: var(--btn-demo-hover); color: white; }
         .btn-demo:disabled { filter: brightness(0.6); cursor: not-allowed; }
@@ -382,16 +402,23 @@
         #spin-result-msg { text-align: center; margin-bottom: 1rem; font-weight: 800; min-height: 28px; font-size: 1.2rem;}
 
         /* --- PACK CONTENTS GRID --- */
-        .section-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1.5rem; color: var(--text-main); }
+        .section-title {
+            font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1.5rem;
+            color: var(--text-main);
+            background: linear-gradient(90deg, var(--text-main) 0%, #93c5fd 130%);
+            -webkit-background-clip: text; background-clip: text;
+        }
+        html.light-theme .section-title { background: linear-gradient(90deg, var(--text-main) 0%, #2563eb 140%); -webkit-background-clip: text; background-clip: text; }
+        .section-divider { height: 1px; border: none; background: var(--border-light); margin: 2.5rem 0; }
 
         .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 3rem;}
         .grid-item {
-            background: var(--bg-card); border-radius: 8px; padding: 1.5rem 1rem;
+            background: var(--bg-card); border-radius: 12px; padding: 1.5rem 1rem;
             display: flex; flex-direction: column; align-items: center; position: relative;
-            border: 1px solid var(--border-light); transition: 0.2s; cursor: default;
+            border: 1px solid var(--border-light); transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; cursor: default;
             overflow: hidden;
         }
-        .grid-item:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+        .grid-item:hover { transform: translateY(-4px) scale(1.015); border-color: rgba(255,255,255,0.2); box-shadow: 0 12px 28px rgba(0,0,0,0.35); }
 
         /* inventory items: hover = red glow + prominent "CLICK TO SELL" */
         .grid-item.sellable { cursor: pointer; }
@@ -413,14 +440,36 @@
         .item-price { font-size: 0.95rem; font-weight: 800; color: var(--text-main); z-index: 5;}
 
         /* --- PACKS BROWSER --- */
-        .browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+        .browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
         .browse-card {
-            background: transparent; border: none; padding: 1.5rem;
+            background: transparent; border: none; padding: 1.5rem; border-radius: 12px;
             display: flex; flex-direction: column; align-items: center;
             text-align: center; cursor: pointer; transition: 0.2s;
         }
-        .browse-card:hover .css-pack { transform: translateY(-8px) scale(1.02); filter: brightness(1.1); }
-        .browse-card .price { color: var(--text-main); font-weight: 700; font-size: 1.1rem; margin-top: 0.5rem;}
+        .browse-card:hover { background: rgba(255,255,255,0.02); }
+        .browse-card:hover .css-pack { transform: translateY(-8px) scale(1.03); filter: brightness(1.12); box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.1); }
+        .browse-card .price { color: var(--text-main); font-weight: 700; font-size: 1.15rem; margin-top: 0.5rem;}
+
+        /* --- PACK FILTER / SEARCH BAR --- */
+        .pack-filter-bar {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+            background: var(--bg-card); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 2rem;
+        }
+        .pack-filter-bar .pf-field { display: flex; align-items: center; gap: 0.45rem; }
+        .pack-filter-bar label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
+        .pf-input {
+            background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main);
+            border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.9rem; font-weight: 600;
+            font-family: inherit; outline: none; transition: border-color 0.2s;
+        }
+        .pf-input:focus { border-color: #3b82f6; }
+        .pf-input::placeholder { color: var(--text-muted); }
+        .pf-search { flex: 1; min-width: 160px; }
+        .pf-num { width: 90px; }
+        .pf-select { cursor: pointer; }
+        .browse-empty { text-align: center; color: var(--text-muted); font-weight: 600; padding: 3rem 1rem; grid-column: 1 / -1; }
+        @media(max-width:640px){ .pack-filter-bar { gap: 0.5rem; padding: 0.85rem; } .pf-num { width: 72px; } .pf-search { min-width: 120px; } }
 
         .fallback-red { width: 80%; height: 80%; border: 1px dashed #ef4444; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 0.75rem; font-weight: 600; text-align: center; word-break: break-all; border-radius: 8px; z-index: 10; position: relative;}
 
@@ -562,7 +611,7 @@
         .case-modal-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);transform:translateY(-2px);}
         .case-modal-card:hover .css-pack{filter:brightness(1.1);}
         .case-modal-card .cmc-pack{position:relative;width:124px;height:180px;overflow:hidden;margin-bottom:0.4rem;}
-        .case-modal-card .cmc-pack .css-pack{position:absolute;top:0;left:0;transform:scale(0.775);transform-origin:top left;margin:0;}
+        .case-modal-card .cmc-pack .css-pack{position:absolute;top:0;left:0;transform:scale(0.689);transform-origin:top left;margin:0;}
         .case-modal-card .cmc-name{font-weight:700;font-size:0.82rem;color:var(--text-main);margin-bottom:0.15rem;}
         .case-modal-card .cmc-price{font-size:0.78rem;color:var(--gold-spin);font-weight:700;}
         .selected-pack-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:0.5rem;text-align:center;position:relative;cursor:pointer;transition:.2s;width:100px;flex-shrink:0;}
@@ -575,21 +624,21 @@
 
         /* --- ADD-PACKS / CSS PACK PREVIEW (create battle + lobby) --- */
         .pack-pick-mini{position:relative;width:72px;height:104px;flex-shrink:0;overflow:hidden;}
-        .pack-pick-mini .css-pack{transform:scale(0.45);transform-origin:top left;margin:0;}
+        .pack-pick-mini .css-pack{transform:scale(0.4);transform-origin:top left;margin:0;}
         .selected-pack-css{position:relative;display:flex;flex-direction:column;align-items:center;flex-shrink:0;cursor:pointer;transition:.2s;}
         .selected-pack-css:hover{transform:translateY(-3px);}
         .selected-pack-css .spc-price{font-size:0.72rem;font-weight:700;color:var(--gold-spin);margin-top:-0.25rem;}
         .selected-pack-css .spc-remove{position:absolute;top:-4px;right:6px;z-index:30;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.95rem;font-weight:800;line-height:20px;text-align:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.4);transition:.2s;}
         .selected-pack-css .spc-remove:hover{background:#dc2626;transform:scale(1.1);}
         .spc-pack{position:relative;width:104px;height:150px;overflow:hidden;}
-        .spc-pack .css-pack{transform:scale(0.65);transform-origin:top left;margin:0;}
+        .spc-pack .css-pack{transform:scale(0.578);transform-origin:top left;margin:0;}
         .add-packs-box{width:104px;height:150px;border:2px dashed rgba(255,255,255,0.18);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;cursor:pointer;color:var(--text-muted);transition:.2s;flex-shrink:0;background:rgba(255,255,255,0.02);}
         .add-packs-box:hover{border-color:var(--gold-spin);color:var(--text-main);background:rgba(250,204,21,0.05);}
         .add-packs-box .apb-plus{font-size:2.2rem;font-weight:300;line-height:1;}
         .add-packs-box .apb-text{font-size:0.82rem;font-weight:700;}
         .selected-packs-wrap{display:flex;gap:0.85rem;flex-wrap:wrap;align-items:flex-start;min-height:150px;}
         .bt-case-thumb.has-pack{overflow:hidden;}
-        .bt-case-thumb .css-pack{position:absolute;top:0;left:0;transform:scale(0.275);transform-origin:top left;margin:0;box-shadow:none;}
+        .bt-case-thumb .css-pack{position:absolute;top:0;left:0;transform:scale(0.244);transform-origin:top left;margin:0;box-shadow:none;}
         .bt-case-thumb .css-pack-name{font-size:0.95rem;}
 
         /* small static (non-animated) reel preview in the waiting room */
@@ -849,7 +898,7 @@
 
             .opening-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
             .opening-pack { width: 80px; height: 115px; }
-            .opening-pack .css-pack { transform: scale(0.5); }
+            .opening-pack .css-pack { transform: scale(0.44); }
             .case-header-title { font-size: 1.4rem; }
             .case-header-subtitle { font-size: 0.85rem; }
 
@@ -1046,6 +1095,7 @@
 <body>
 
     <canvas id="starfield"></canvas>
+    <canvas id="confetti-canvas"></canvas>
 
     <div id="landing-page">
         <div class="landing">
@@ -1157,6 +1207,10 @@
                 RoUnbox
             </div>
             <div class="nav-links">
+                <a class="nav-home-link" onclick="showPage('browser')" id="nav-home" title="Home">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
+                    Home
+                </a>
                 <a class="active" onclick="showPage('browser')" id="nav-browser">Packs</a>
                 <a onclick="showPage('battles')" id="nav-battles">Battles</a>
                 <a onclick="showPage('coinflip')" id="nav-coinflip">Coinflip</a>
@@ -1197,6 +1251,7 @@
             <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
         </div>
         <div class="sidebar-links" id="sidebar-links">
+            <a onclick="showPage('browser');toggleSidebar();" id="sb-home"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>Home</a>
             <a onclick="showPage('browser');toggleSidebar();" id="sb-browser">Packs</a>
             <a onclick="showPage('battles');toggleSidebar();" id="sb-battles">Battles</a>
             <a onclick="showPage('coinflip');toggleSidebar();" id="sb-coinflip">Coinflip</a>
@@ -1220,6 +1275,26 @@
     <main style="display:none">
         <div id="page-browser" class="page active">
             <h2 class="section-title">Packs</h2>
+            <p class="section-subtitle">Open packs to win items. Hit a Gold Spin for premium rewards!</p>
+            <div class="pack-filter-bar">
+                <input type="text" id="pack-search" class="pf-input pf-search" placeholder="Search packs by name..." oninput="renderBrowser()">
+                <div class="pf-field">
+                    <label for="pack-min">Min $</label>
+                    <input type="number" id="pack-min" class="pf-input pf-num" min="0" step="any" placeholder="0" oninput="renderBrowser()">
+                </div>
+                <div class="pf-field">
+                    <label for="pack-max">Max $</label>
+                    <input type="number" id="pack-max" class="pf-input pf-num" min="0" step="any" placeholder="Any" oninput="renderBrowser()">
+                </div>
+                <div class="pf-field">
+                    <label for="pack-sort">Sort by</label>
+                    <select id="pack-sort" class="pf-input pf-select" onchange="renderBrowser()">
+                        <option value="price-asc">Price Low&rarr;High</option>
+                        <option value="price-desc">Price High&rarr;Low</option>
+                        <option value="name-asc">Name A&rarr;Z</option>
+                    </select>
+                </div>
+            </div>
             <div class="browse-grid" id="browse-grid"></div>
         </div>
 
@@ -1262,6 +1337,7 @@
                 <h2 class="section-title" style="margin:0;">Case Battles</h2>
                 <button class="btn-open" style="padding:0 1.5rem;height:40px;font-size:0.95rem;" onclick="showPage('create-battle')">+ Create Battle</button>
             </div>
+            <p class="section-subtitle">Battle against other players or bots. Each player opens the same packs — highest total value wins!</p>
             <div id="battles-list" class="battle-list"></div>
         </div>
 
@@ -1288,6 +1364,7 @@
 
         <div id="page-coinflip" class="page">
             <h2 class="section-title">Coinflip</h2>
+            <p class="section-subtitle">Pick heads or tails, set your bet, and flip against an opponent. Winner takes all!</p>
             <div class="cf-create-row">
                 <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);">Bet: $</span>
                 <input type="number" id="cf-custom-amount" class="login-input" style="width:120px;margin:0;padding:0.4rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5" oninput="cfState.amount=parseFloat(this.value)||0">
@@ -1344,11 +1421,13 @@
                 <h2 class="section-title" style="margin:0;">Your Inventory</h2>
                 <button class="btn-demo" style="color: #ef4444; border-color: transparent;" onclick="sellAll()">Sell All</button>
             </div>
+            <p class="section-subtitle" style="margin-top:-1.25rem;">Your collection. Click any item to sell it for its value.</p>
             <div class="items-grid" id="inventory-grid"></div>
         </div>
 
         <div id="page-blackjack" class="page">
             <h2 class="section-title">Blackjack</h2>
+            <p class="section-subtitle">Classic 21. Beat the dealer without going over. Blackjack pays 2.5x!</p>
             <div class="bj-table" id="bj-table">
                 <div class="bj-deck-stack" id="bj-deck-stack">
                     <div class="bj-deck-card" style="top:4px;left:2px;"></div>
@@ -1453,6 +1532,77 @@
                 toast.classList.add('removing');
                 setTimeout(function(){toast.remove();},350);
             },duration);
+        }
+
+        // --- CONFETTI EXPLOSION SYSTEM ---
+        var _confettiParticles = [];
+        var _confettiRunning = false;
+        function fireConfetti(count){
+            var canvas = document.getElementById('confetti-canvas');
+            if(!canvas) return;
+            var ctx = canvas.getContext('2d');
+            if(canvas.width !== window.innerWidth || canvas.height !== window.innerHeight){
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            }
+            var n = count || 80;
+            var colors = ['#ffd900','#4ade80','#3b82f6','#ef4444','#a855f7','#ffffff'];
+            var originX = canvas.width / 2;
+            var originY = canvas.height * 0.18;
+            for(var i=0;i<n;i++){
+                var angle = (-Math.PI/2) + (Math.random()-0.5) * Math.PI * 1.15; // upward-ish fan
+                var speed = 6 + Math.random()*9;
+                _confettiParticles.push({
+                    x: originX + (Math.random()-0.5)*120,
+                    y: originY + (Math.random()-0.5)*30,
+                    vx: Math.cos(angle)*speed + (Math.random()-0.5)*4,
+                    vy: Math.sin(angle)*speed,
+                    size: 5 + Math.random()*7,
+                    color: colors[Math.floor(Math.random()*colors.length)],
+                    rot: Math.random()*Math.PI*2,
+                    vrot: (Math.random()-0.5)*0.3,
+                    shape: Math.random()<0.5 ? 'rect' : 'circle',
+                    life: 0,
+                    maxLife: 90 + Math.random()*40 // ~2s at 60fps
+                });
+            }
+            if(!_confettiRunning){
+                _confettiRunning = true;
+                requestAnimationFrame(_confettiLoop);
+            }
+        }
+        function _confettiLoop(){
+            var canvas = document.getElementById('confetti-canvas');
+            if(!canvas){ _confettiRunning = false; return; }
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            var gravity = 0.32;
+            for(var i=_confettiParticles.length-1;i>=0;i--){
+                var p = _confettiParticles[i];
+                p.life++;
+                p.vy += gravity;
+                p.vx *= 0.99;
+                p.x += p.vx; p.y += p.vy;
+                p.rot += p.vrot;
+                var alpha = 1 - (p.life / p.maxLife);
+                if(alpha <= 0 || p.y > canvas.height + 40){ _confettiParticles.splice(i,1); continue; }
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, alpha);
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.fillStyle = p.color;
+                if(p.shape === 'rect'){
+                    ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+                } else {
+                    ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+            }
+            if(_confettiParticles.length > 0){
+                requestAnimationFrame(_confettiLoop);
+            } else {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                _confettiRunning = false;
+            }
         }
 
         // --- STARFIELD CANVAS ENGINE (calm) ---
@@ -2119,7 +2269,34 @@
         function renderBrowser() {
             const grid = document.getElementById('browse-grid');
             grid.innerHTML = '';
-            CASES.forEach(c => {
+
+            const searchEl = document.getElementById('pack-search');
+            const minEl = document.getElementById('pack-min');
+            const maxEl = document.getElementById('pack-max');
+            const sortEl = document.getElementById('pack-sort');
+
+            const search = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const min = minEl && minEl.value !== '' ? parseFloat(minEl.value) : null;
+            const max = maxEl && maxEl.value !== '' ? parseFloat(maxEl.value) : null;
+            const sort = sortEl ? sortEl.value : 'price-asc';
+
+            let list = CASES.filter(c => {
+                if (search && !c.name.toLowerCase().includes(search)) return false;
+                if (min !== null && !isNaN(min) && c.price < min) return false;
+                if (max !== null && !isNaN(max) && c.price > max) return false;
+                return true;
+            });
+
+            if (sort === 'price-asc') list.sort((a, b) => a.price - b.price);
+            else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
+            else if (sort === 'name-asc') list.sort((a, b) => a.name.localeCompare(b.name));
+
+            if (!list.length) {
+                grid.innerHTML = '<div class="browse-empty">No packs match your filters.</div>';
+                return;
+            }
+
+            list.forEach(c => {
                 const card = document.createElement('div');
                 card.className = 'browse-card';
                 card.innerHTML = `${createCSSPackHTML(c)}<div class="price">$${fmt(c.price)}</div>`;
@@ -2323,6 +2500,10 @@
             }
             // win notification for each item added to inventory
             toAdd.forEach(item => showToast('You won ' + item.name + '! Added to inventory', 'success'));
+            // confetti for rare / epic / legendary pulls
+            if(toAdd.some(it => it.rarity==='rare' || it.rarity==='epic' || it.rarity==='legendary')){
+                fireConfetti(90);
+            }
             updateUI();
         }
 
@@ -2356,6 +2537,8 @@
                 const goldTokensHit = wonItems.filter(item => item.isToken).length;
 
                 if (goldTokensHit > 0) {
+                    // GOLD SPIN! celebrate the premium unlock
+                    fireConfetti(110);
                     // no "gold spin" text — just keep normal wins, then run the gold reel
                     if (!isDemo) {
                         addItemsToInventory(wonItems);
@@ -2864,6 +3047,13 @@
             const isTeam=!!battle.isTeam;const ts=battle.teamSize||0;
             const wIdx=battle.players.indexOf(battle.winner);
             const wTeam=isTeam&&ts>0?(wIdx<ts?0:1):-1;
+            // confetti if the current player (or their team) won
+            (function(){
+                let youWon=false;
+                if(isTeam&&ts>0){const myIdx=battle.players.indexOf(currentUser);if(myIdx>=0){youWon=((myIdx<ts?0:1)===wTeam);}}
+                else{youWon=(battle.winner===currentUser);}
+                if(youWon)fireConfetti(100);
+            })();
 
             // Fill history and totals
             battle.players.forEach((p,i)=>{
@@ -3196,6 +3386,7 @@
                                         activeCfState.status='finished';
                                         playGameEnd();
                                         if(cf.winner===currentUser){
+                                            fireConfetti(90);
                                             apiCall('/api/balance',{amount:cf.amount*2}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});
                                         }
                                         renderCfRoom(activeCfState);
@@ -3496,6 +3687,7 @@
             if(payout>0){apiCall('/api/balance',{amount:payout}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});}
             bjSetResult(msg,cls);
             playGameEnd();
+            if(outcome==='win'||outcome==='blackjack')fireConfetti(outcome==='blackjack'?110:80);
             if(cls==='win')showToast(msg,'success');
             else if(cls==='push')showToast(msg,'info');
             var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal Again';db.disabled=false;}
