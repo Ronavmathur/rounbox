@@ -528,10 +528,10 @@
         .cf-coin{width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;transition:transform 0.15s ease,box-shadow 0.3s;}
         .cf-result{font-size:1.3rem;font-weight:800;margin-top:1rem;}
 
-        .cf-flip-zone{position:relative;width:200px;height:300px;margin:0 auto;overflow:visible;}
-        .cf-flip-coin{position:absolute;left:50%;width:90px;height:90px;margin-left:-45px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:900;z-index:5;pointer-events:none;}
-        .cf-flip-shadow{position:absolute;left:50%;bottom:20px;width:60px;height:12px;margin-left:-30px;border-radius:50%;background:rgba(255,255,255,0.1);filter:blur(6px);pointer-events:none;z-index:1;}
-        .cf-flip-result{position:absolute;bottom:-10px;width:100%;text-align:center;font-size:1.6rem;font-weight:900;opacity:0;transform:scale(0.5);transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:10;}
+        .cf-flip-zone{position:relative;width:200px;height:300px;margin:0 auto;overflow:visible;perspective:800px;}
+        .cf-flip-coin{position:absolute;left:50%;width:100px;height:100px;margin-left:-50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.4rem;font-weight:900;z-index:5;pointer-events:none;transition:box-shadow 0.4s ease;}
+        .cf-flip-shadow{position:absolute;left:50%;bottom:30px;width:70px;height:14px;margin-left:-35px;border-radius:50%;background:rgba(255,255,255,0.12);filter:blur(8px);pointer-events:none;z-index:1;transition:all 0.1s ease;}
+        .cf-flip-result{position:absolute;bottom:-10px;width:100%;text-align:center;font-size:1.6rem;font-weight:900;opacity:0;transform:scale(0.5) translateY(10px);transition:all 0.5s cubic-bezier(0.34,1.56,0.64,1);z-index:10;}
 
         /* --- CASE BATTLES --- */
         .battle-list{display:flex;flex-direction:column;gap:0.75rem;}
@@ -2717,26 +2717,22 @@
                     var resultEl=document.getElementById('cf-flip-result');
                     if(!coin)return;
 
-                    var restY=140;
-                    var flipAngle=0;
+                    var groundY=150;
+                    var vy=-14;
+                    var gravity=0.35;
+                    var posY=groundY;
+                    var rotX=0;
+                    var rotSpeed=16;
                     var showingHeads=true;
-                    var elapsed=0;
+                    var bounceCount=0;
+                    var settled=false;
+                    var settleStart=0;
+                    var revealed=false;
                     var lastTime=performance.now();
-                    var landed=false;
-
-                    // Phase 1: flip up (0-500ms)
-                    // Phase 2: fall down (500-1000ms)
-                    // Phase 3: first bounce up (1000-1300ms)
-                    // Phase 4: bounce down (1300-1600ms)
-                    // Phase 5: small bounce (1600-1800ms)
-                    // Phase 6: settle on result (1800-2100ms)
-                    // Phase 7: show result text (2100-2600ms)
-
-                    var totalDuration=2600;
 
                     function swapFace(){
-                        var absAngle=((flipAngle%360)+360)%360;
-                        var nowHeads=(absAngle<90||absAngle>270);
+                        var norm=((rotX%360)+360)%360;
+                        var nowHeads=(norm<90||norm>270);
                         if(nowHeads!==showingHeads){
                             showingHeads=nowHeads;
                             coin.className='cf-flip-coin '+(nowHeads?'cf-coin-heads':'cf-coin-tails');
@@ -2747,108 +2743,101 @@
                     function tick(now){
                         var dt=Math.min(now-lastTime,32);
                         lastTime=now;
-                        elapsed+=dt;
-                        var y,scale;
+                        var dtN=dt/16;
 
-                        if(elapsed<500){
-                            // Rise up, get bigger, flip fast
-                            var t=elapsed/500;
-                            var et=1-Math.pow(1-t,3);
-                            y=restY-90*et;
-                            scale=1+0.4*et;
-                            flipAngle+=18*(dt/16);
+                        if(!settled){
+                            vy+=gravity*dtN;
+                            posY+=vy*dtN;
+                            rotX+=rotSpeed*dtN;
                             swapFace();
-                        }else if(elapsed<1000){
-                            // Fall back down
-                            var t=(elapsed-500)/500;
-                            var et=t*t;
-                            y=(restY-90)+90*et;
-                            scale=1.4-0.4*et;
-                            flipAngle+=14*(1-t*0.3)*(dt/16);
-                            swapFace();
-                            if(et>0.95&&!landed){landed=true;playTick();}
-                        }else if(elapsed<1300){
-                            // First bounce up
-                            var t=(elapsed-1000)/300;
-                            var et=Math.sin(t*Math.PI);
-                            y=restY-35*et;
-                            scale=1+0.15*et;
-                            flipAngle+=10*(1-t*0.5)*(dt/16);
-                            swapFace();
-                        }else if(elapsed<1600){
-                            // Bounce down
-                            var t=(elapsed-1300)/300;
-                            y=restY;
-                            scale=1;
-                            flipAngle+=7*(1-t*0.7)*(dt/16);
-                            swapFace();
-                            if(t<0.3){var bt=t/0.3;y=restY-12*Math.sin(bt*Math.PI);scale=1+0.05*Math.sin(bt*Math.PI);}
-                        }else if(elapsed<1800){
-                            // Tiny last bounce
-                            var t=(elapsed-1600)/200;
-                            var et=Math.sin(t*Math.PI);
-                            y=restY-5*et;
-                            scale=1;
-                            flipAngle+=3*(1-t)*(dt/16);
-                            swapFace();
-                        }else if(elapsed<2100){
-                            // Settle on result face
-                            var t=(elapsed-1800)/300;
-                            y=restY;
-                            scale=1;
-                            var resultIsHeads=cf.result==='heads';
-                            var target=resultIsHeads?0:180;
-                            var cur=((flipAngle%360)+360)%360;
-                            var diff=target-cur;
-                            if(diff>180)diff-=360;
-                            if(diff<-180)diff+=360;
-                            flipAngle+=diff*0.25;
-                            swapFace();
+
+                            if(posY>=groundY&&vy>0){
+                                posY=groundY;
+                                bounceCount++;
+                                vy=-vy*0.45;
+                                rotSpeed*=0.5;
+                                playTick();
+                                if(Math.abs(vy)<1.2||bounceCount>=4){
+                                    settled=true;
+                                    settleStart=now;
+                                    posY=groundY;
+                                    vy=0;
+                                }
+                            }
+
+                            var height=groundY-posY;
+                            var maxH=120;
+                            var normH=Math.min(height/maxH,1);
+                            var scale=1+normH*0.35;
+                            var scaleX=Math.abs(Math.cos(rotX*Math.PI/180));
+                            scaleX=Math.max(scaleX,0.08);
+
+                            coin.style.top=posY+'px';
+                            coin.style.transform='scale('+scale.toFixed(3)+') scaleX('+scaleX.toFixed(3)+')';
+
+                            if(shadowEl){
+                                var sw=70-normH*30;
+                                shadowEl.style.width=sw+'px';
+                                shadowEl.style.marginLeft=(-sw/2)+'px';
+                                shadowEl.style.opacity=(0.15-normH*0.1).toFixed(2);
+                            }
                         }else{
-                            // Show result
-                            y=restY;
-                            scale=1.08;
-                            var resultIsHeads=cf.result==='heads';
-                            coin.className='cf-flip-coin '+(resultIsHeads?'cf-coin-heads':'cf-coin-tails');
-                            coin.innerText=resultIsHeads?'H':'T';
-                            coin.style.boxShadow=resultIsHeads?'0 0 30px rgba(239,68,68,0.5)':'0 0 30px rgba(59,130,246,0.5)';
-                            if(resultEl&&resultEl.style.opacity==='0'){
-                                resultEl.innerHTML=cf.result.toUpperCase()+'!';
-                                resultEl.style.color=resultIsHeads?'#fca5a5':'#93c5fd';
-                                resultEl.style.opacity='1';
-                                resultEl.style.transform='scale(1)';
-                                playWin();
-                            }
-                            coin.style.top=y+'px';
-                            coin.style.transform='scale('+scale+')';
-                            if(elapsed>=totalDuration){
-                                setTimeout(function(){
-                                    cfAnimRunning=false;
-                                    activeCfState.status='finished';
-                                    playGameEnd();
-                                    if(cf.winner===currentUser){
-                                        apiCall('/api/balance',{amount:cf.amount*2}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});
-                                    }
-                                    renderCfRoom(activeCfState);
-                                },600);
-                                return;
-                            }
-                            requestAnimationFrame(tick);
-                            return;
-                        }
+                            var st=now-settleStart;
 
-                        if(shadowEl){
-                            var shadowScale=scale;
-                            var sw=50+(shadowScale-1)*40;
-                            shadowEl.style.width=sw+'px';
-                            shadowEl.style.marginLeft=(-sw/2)+'px';
-                            shadowEl.style.opacity=(0.15*(2-scale)).toFixed(2);
+                            if(st<500){
+                                var t=st/500;
+                                var ease=1-Math.pow(1-t,4);
+                                var resultIsHeads=cf.result==='heads';
+                                var target=resultIsHeads?0:180;
+                                var cur=((rotX%360)+360)%360;
+                                var diff=target-cur;
+                                if(diff>180)diff-=360;
+                                if(diff<-180)diff+=360;
+                                rotX+=diff*ease*0.12;
+                                swapFace();
+
+                                var wobble=(1-ease)*8*Math.sin(st*0.02);
+                                coin.style.top=groundY+'px';
+                                coin.style.transform='scale(1) scaleX('+Math.max(0.08,Math.abs(Math.cos(rotX*Math.PI/180))).toFixed(3)+') rotate('+wobble.toFixed(1)+'deg)';
+                                if(shadowEl){shadowEl.style.width='70px';shadowEl.style.marginLeft='-35px';shadowEl.style.opacity='0.15';}
+                            }else if(st<900){
+                                var t=(st-500)/400;
+                                var ease=1-Math.pow(1-t,3);
+                                var resultIsHeads=cf.result==='heads';
+                                coin.className='cf-flip-coin '+(resultIsHeads?'cf-coin-heads':'cf-coin-tails');
+                                coin.innerText=resultIsHeads?'H':'T';
+                                var s=1+0.12*ease;
+                                coin.style.top=groundY+'px';
+                                coin.style.transform='scale('+s.toFixed(3)+') scaleX(1) rotate(0deg)';
+                                coin.style.boxShadow=resultIsHeads?'0 0 '+(30*ease)+'px rgba(239,68,68,'+(0.5*ease)+')':'0 0 '+(30*ease)+'px rgba(59,130,246,'+(0.5*ease)+')';
+                            }else{
+                                if(!revealed){
+                                    revealed=true;
+                                    var resultIsHeads=cf.result==='heads';
+                                    if(resultEl){
+                                        resultEl.innerHTML=cf.result.toUpperCase()+'!';
+                                        resultEl.style.color=resultIsHeads?'#fca5a5':'#93c5fd';
+                                        resultEl.style.opacity='1';
+                                        resultEl.style.transform='scale(1) translateY(0)';
+                                    }
+                                    playWin();
+                                    setTimeout(function(){
+                                        cfAnimRunning=false;
+                                        activeCfState.status='finished';
+                                        playGameEnd();
+                                        if(cf.winner===currentUser){
+                                            apiCall('/api/balance',{amount:cf.amount*2}).then(function(r){if(r&&r.ok){balance=r.balance;updateUI();}});
+                                        }
+                                        renderCfRoom(activeCfState);
+                                    },800);
+                                    return;
+                                }
+                            }
                         }
-                        coin.style.top=y+'px';
-                        coin.style.transform='scale('+scale.toFixed(3)+')';
                         requestAnimationFrame(tick);
                     }
-                    coin.style.top=restY+'px';
+                    coin.style.top=groundY+'px';
+                    vy=-14;
                     requestAnimationFrame(tick);
                 })();
                 return;
