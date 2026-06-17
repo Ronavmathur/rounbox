@@ -7,8 +7,213 @@ const crypto = require('crypto');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname)));
 const PORT = 3000;
+
+// ========== USER / AUTH SYSTEM ==========
+const AUTH_SALT = 'rounbox_s3cur3_2024';
+const users = {};      // { username: { passwordHash, balance, inventory, isAdmin, banned, avatar } }
+const sessions = {};   // { token: username }
+
+function hashPwd(pwd) {
+    return crypto.createHash('sha256').update(pwd + AUTH_SALT).digest('hex');
+}
+function genToken() {
+    return crypto.randomBytes(24).toString('hex');
+}
+function hasAnyAdmin() {
+    return Object.values(users).some(u => u.isAdmin);
+}
+function publicUser(username) {
+    const u = users[username];
+    if (!u) return null;
+    return {
+        username,
+        balance: u.balance,
+        inventory: u.inventory,
+        isAdmin: !!u.isAdmin,
+        avatar: u.avatar || null
+    };
+}
+
+// extracts "Authorization: Bearer <token>" -> req.user (username) and req.userData
+function authMiddleware(req, res, next) {
+    const auth = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    const username = token ? sessions[token] : null;
+    if (!username || !users[username]) {
+        return res.status(401).json({ ok: false, msg: 'Not authenticated' });
+    }
+    if (users[username].banned) {
+        delete sessions[token];
+        return res.status(403).json({ ok: false, msg: 'Account banned' });
+    }
+    req.token = token;
+    req.user = username;
+    req.userData = users[username];
+    next();
+}
+function adminMiddleware(req, res, next) {
+    if (!req.userData || !req.userData.isAdmin) {
+        return res.status(403).json({ ok: false, msg: 'Admin only' });
+    }
+    next();
+}
+
+// ---- AUTH ENDPOINTS ----
+app.get('/api/has-admin', (req, res) => {
+    res.json({ ok: true, hasAdmin: hasAnyAdmin() });
+});
+
+app.post('/api/signup', (req, res) => {
+    let { username, password } = req.body || {};
+    if (typeof username !== 'string' || typeof password !== 'string') return res.json({ ok: false, msg: 'Invalid data' });
+    username = username.trim().toLowerCase();
+    if (username.length < 3) return res.json({ ok: false, msg: 'Username must be 3+ characters' });
+    if (!/^[a-z0-9_]+$/.test(username)) return res.json({ ok: false, msg: 'Letters, numbers, underscores only' });
+    if (['system', 'root'].includes(username)) return res.json({ ok: false, msg: 'Username not available' });
+    const firstAccount = Object.keys(users).length === 0;
+    if (firstAccount) {
+        if (password.length < 6) return res.json({ ok: false, msg: 'Password must be 6+ characters' });
+    } else {
+        if (password.length < 4) return res.json({ ok: false, msg: 'Password must be 4+ characters' });
+    }
+    if (users[username]) return res.json({ ok: false, msg: 'Username already taken' });
+    users[username] = {
+        passwordHash: hashPwd(password),
+        balance: firstAccount ? 10000 : 0,
+        inventory: [],
+        isAdmin: firstAccount,
+        banned: false,
+        avatar: null
+    };
+    const token = genToken();
+    sessions[token] = username;
+    res.json({ ok: true, token, user: publicUser(username) });
+});
+
+app.post('/api/login', (req, res) => {
+    let { username, password } = req.body || {};
+    if (typeof username !== 'string' || typeof password !== 'string') return res.json({ ok: false, msg: 'Invalid data' });
+    username = username.trim().toLowerCase();
+    const u = users[username];
+    if (!u) return res.json({ ok: false, msg: 'Account not found' });
+    if (u.banned) return res.json({ ok: false, msg: 'This account has been banned' });
+    if (u.passwordHash !== hashPwd(password)) return res.json({ ok: false, msg: 'Wrong password' });
+    const token = genToken();
+    sessions[token] = username;
+    res.json({ ok: true, token, user: publicUser(username) });
+});
+
+app.post('/api/logout', authMiddleware, (req, res) => {
+    delete sessions[req.token];
+    res.json({ ok: true });
+});
+
+app.get('/api/me', authMiddleware, (req, res) => {
+    res.json({ ok: true, user: publicUser(req.user) });
+});
+
+// ---- BALANCE / INVENTORY ENDPOINTS ----
+// Adjust balance by a delta (negative to spend). Rejects if it would go below 0.
+app.post('/api/balance', authMiddleware, (req, res) => {
+    let { amount } = req.body || {};
+    amount = Number(amount);
+    if (!isFinite(amount)) return res.json({ ok: false, msg: 'Invalid amount' });
+    const next = Math.round((req.userData.balance + amount) * 100) / 100;
+    if (next < 0) return res.json({ ok: false, msg: 'Insufficient balance' });
+    req.userData.balance = next;
+    res.json({ ok: true, balance: req.userData.balance });
+});
+
+// Add items to inventory. Body: { items: [ {name, price, imgKey, rarity, id?} ] }
+app.post('/api/inventory/add', authMiddleware, (req, res) => {
+    const items = (req.body && req.body.items) || [];
+    if (!Array.isArray(items)) return res.json({ ok: false, msg: 'Invalid items' });
+    items.forEach(it => {
+        if (it && !it.isToken && typeof it.price === 'number') req.userData.inventory.push(it);
+    });
+    res.json({ ok: true, inventory: req.userData.inventory, balance: req.userData.balance });
+});
+
+// Sell single item by index.
+app.post('/api/inventory/sell', authMiddleware, (req, res) => {
+    const idx = Number(req.body && req.body.index);
+    const inv = req.userData.inventory;
+    if (!Number.isInteger(idx) || idx < 0 || idx >= inv.length) return res.json({ ok: false, msg: 'Invalid index' });
+    const price = Number(inv[idx].price) || 0;
+    inv.splice(idx, 1);
+    req.userData.balance = Math.round((req.userData.balance + price) * 100) / 100;
+    res.json({ ok: true, balance: req.userData.balance, inventory: inv });
+});
+
+// Sell all items.
+app.post('/api/inventory/sellall', authMiddleware, (req, res) => {
+    const inv = req.userData.inventory;
+    const total = inv.reduce((s, it) => s + (Number(it.price) || 0), 0);
+    req.userData.inventory = [];
+    req.userData.balance = Math.round((req.userData.balance + total) * 100) / 100;
+    res.json({ ok: true, balance: req.userData.balance, inventory: req.userData.inventory });
+});
+
+// Save avatar (base64 data URL).
+app.post('/api/avatar', authMiddleware, (req, res) => {
+    const avatar = req.body && req.body.avatar;
+    if (typeof avatar !== 'string' || avatar.length > 200000) return res.json({ ok: false, msg: 'Invalid avatar' });
+    req.userData.avatar = avatar;
+    res.json({ ok: true });
+});
+
+// ---- ADMIN ENDPOINTS ----
+app.post('/api/admin/users', authMiddleware, adminMiddleware, (req, res) => {
+    const list = Object.keys(users).map(name => ({
+        username: name,
+        balance: users[name].balance || 0,
+        items: (users[name].inventory || []).length,
+        isAdmin: !!users[name].isAdmin,
+        banned: !!users[name].banned
+    }));
+    res.json({ ok: true, users: list });
+});
+
+app.post('/api/admin/give', authMiddleware, adminMiddleware, (req, res) => {
+    const { username } = req.body || {};
+    let amount = Number(req.body && req.body.amount);
+    const u = users[username];
+    if (!u) return res.json({ ok: false, msg: 'User not found' });
+    if (!isFinite(amount) || amount <= 0 || amount > 1000000) return res.json({ ok: false, msg: 'Invalid amount' });
+    u.balance = Math.round(((u.balance || 0) + amount) * 100) / 100;
+    res.json({ ok: true, balance: u.balance });
+});
+
+app.post('/api/admin/take', authMiddleware, adminMiddleware, (req, res) => {
+    const { username } = req.body || {};
+    let amount = Number(req.body && req.body.amount);
+    const u = users[username];
+    if (!u) return res.json({ ok: false, msg: 'User not found' });
+    if (!isFinite(amount) || amount <= 0) return res.json({ ok: false, msg: 'Invalid amount' });
+    u.balance = Math.max(0, Math.round(((u.balance || 0) - amount) * 100) / 100);
+    res.json({ ok: true, balance: u.balance });
+});
+
+app.post('/api/admin/ban', authMiddleware, adminMiddleware, (req, res) => {
+    const { username } = req.body || {};
+    const u = users[username];
+    if (!u || u.isAdmin) return res.json({ ok: false, msg: 'Cannot ban this user' });
+    u.banned = true;
+    // invalidate any active sessions for the banned user
+    for (const t in sessions) if (sessions[t] === username) delete sessions[t];
+    res.json({ ok: true });
+});
+
+app.post('/api/admin/unban', authMiddleware, adminMiddleware, (req, res) => {
+    const { username } = req.body || {};
+    const u = users[username];
+    if (!u) return res.json({ ok: false, msg: 'User not found' });
+    u.banned = false;
+    res.json({ ok: true });
+});
 
 // ========== GAME DATA ==========
 const ITEMS = {
