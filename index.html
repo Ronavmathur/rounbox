@@ -1071,6 +1071,53 @@
         .av-cashout-btn span{font-weight:800;opacity:0.95;}
         @keyframes avPulse{0%,100%{transform:translateX(-50%) scale(1);box-shadow:0 8px 28px rgba(34,197,94,0.45);}50%{transform:translateX(-50%) scale(1.05);box-shadow:0 10px 36px rgba(34,197,94,0.65);}}
         @media(max-width:480px){.av-graph{height:300px;}}
+
+        /* --- SHARED BET PANEL --- */
+        .bet-panel {
+            background: rgba(15, 19, 38, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 14px;
+            padding: 1.25rem;
+            max-width: 420px;
+            margin: 0 auto 1.5rem;
+        }
+        html.light-theme .bet-panel { background: var(--bg-card); box-shadow: var(--card-shadow); }
+        .bet-panel-tabs { display: flex; gap: 0; margin-bottom: 1rem; }
+        .bet-panel-tab { padding: 0.5rem 1.2rem; font-weight: 700; font-size: 0.88rem; background: none; border: none; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; }
+        .bet-panel-tab.active { color: var(--text-main); border-bottom-color: var(--text-main); }
+        .bet-panel-tab:disabled { opacity: 0.4; cursor: not-allowed; }
+        .bet-panel-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .bet-panel-input-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .bet-panel-input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.6rem 0.8rem; color: var(--text-main); font-size: 1rem; font-weight: 700; font-family: inherit; outline: none; }
+        .bet-panel-input:focus { border-color: rgba(99,102,241,0.3); }
+        html.light-theme .bet-panel-input { background: var(--input-bg); border-color: var(--input-border); }
+        .bet-panel-shortcuts { display: flex; gap: 0.3rem; }
+        .bet-panel-shortcut { padding: 0.45rem 0.7rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--text-muted); font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: 0.15s; }
+        .bet-panel-shortcut:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+        html.light-theme .bet-panel-shortcut { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); }
+        .bet-panel-action { width: 100%; padding: 0.85rem; border-radius: 10px; border: none; font-size: 1.05rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: 0.2s; }
+        .bet-panel-action.primary { background: #6366f1; color: white; }
+        .bet-panel-action.primary:hover { background: #4f46e5; }
+        .bet-panel-action.cashout { background: #22c55e; color: white; }
+        .bet-panel-action.cashout:hover { background: #16a34a; }
+        .bet-panel-action.crashed { background: #ef4444; color: white; }
+        .bet-panel-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* crash auto-cashout preset buttons + side selector reuse shortcut look */
+        .bet-panel-presets { display: flex; gap: 0.4rem; margin-bottom: 1rem; }
+        .bet-panel-preset { flex: 1; padding: 0.4rem 0.3rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--text-muted); font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: inherit; transition: 0.15s; }
+        .bet-panel-preset:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+        .bet-panel-preset.active { background: rgba(99,102,241,0.18); color: var(--text-main); border-color: rgba(99,102,241,0.4); }
+        html.light-theme .bet-panel-preset { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); }
+        .bet-panel-info { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 0.6rem 0.8rem; margin-top: 0.9rem; display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; }
+        .bet-panel-info .bp-info-label { color: var(--text-muted); }
+        .bet-panel-info .bp-info-val { color: var(--text-main); }
+        .bet-panel-sides { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .bet-panel-side { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.6rem; border-radius: 10px; border: 2px solid transparent; background: rgba(255,255,255,0.03); transition: .2s; }
+        .bet-panel-side:hover { background: rgba(255,255,255,0.06); }
+        .bet-panel-side.active { border-color: var(--gold-spin); background: rgba(250,204,21,0.06); }
+        .bet-panel-side .bps-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); }
+        .bet-panel-side.active .bps-label { color: var(--gold-spin); }
+
         @media(max-width:480px){
             .bj-card{width:60px;height:86px;}
             .bj-card-center{font-size:1.7rem;}
@@ -1257,8 +1304,8 @@
                     </div>
                     <div class="landing-mode-card">
                         <div class="landing-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg></div>
-                        <h3>Aviator</h3>
-                        <p>Cash out before the plane crashes. The longer you fly, the more you win.</p>
+                        <h3>Crash</h3>
+                        <p>Cash out before the plane crashes! The longer you wait, the higher the multiplier.</p>
                     </div>
                 </div>
             </div>
@@ -1338,9 +1385,9 @@
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.2"/><path d="M12 7c-1.6 1.8-3 3.3-3 5a3 3 0 0 0 6 0c0-1.7-1.4-3.2-3-5z"/></svg>
                     Blackjack
                 </a>
-                <a onclick="showPage('aviator')" id="nav-aviator">
+                <a onclick="showPage('crash')" id="nav-crash">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg>
-                    Aviator
+                    Crash
                 </a>
                 <a onclick="showPage('inventory')" id="nav-inventory">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12l1 7H5z"/><path d="M5 9h14v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M9.5 13h5"/></svg>
@@ -1390,7 +1437,7 @@
             <a onclick="showPage('battles');toggleSidebar();" id="sb-battles"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/></svg>Battles</a>
             <a onclick="showPage('coinflip');toggleSidebar();" id="sb-coinflip"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="6.2" ry="6.2"/><path d="M12 8v8M9.5 9.5h3.2a1.5 1.5 0 0 1 0 3H9.8h3a1.5 1.5 0 0 1 0 3H9.5"/></svg>Coinflip</a>
             <a onclick="showPage('blackjack');toggleSidebar();" id="sb-blackjack"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.2"/><path d="M12 7c-1.6 1.8-3 3.3-3 5a3 3 0 0 0 6 0c0-1.7-1.4-3.2-3-5z"/></svg>Blackjack</a>
-            <a onclick="showPage('aviator');toggleSidebar();" id="sb-aviator"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg>Aviator</a>
+            <a onclick="showPage('crash');toggleSidebar();" id="sb-crash"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg>Crash</a>
             <a onclick="showPage('inventory');toggleSidebar();" id="sb-inventory"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12l1 7H5z"/><path d="M5 9h14v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M9.5 13h5"/></svg>Inventory</a>
             <a onclick="showPage('settings');toggleSidebar();" id="sb-settings"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
             <a onclick="showPage('admin');toggleSidebar();" id="sb-admin" class="admin-nav-link" style="display:none">Admin</a>
@@ -1501,17 +1548,23 @@
         <div id="page-coinflip" class="page">
             <h2 class="section-title">Coinflip</h2>
             <p class="section-subtitle">Pick heads or tails, set your bet, and flip against an opponent. Winner takes all!</p>
-            <div class="cf-create-row">
-                <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);">Bet: $</span>
-                <input type="number" id="cf-custom-amount" class="login-input" style="width:120px;margin:0;padding:0.4rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5" oninput="cfState.amount=parseFloat(this.value)||0">
-                <div class="bet-shortcuts">
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','half')">1/2</button>
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','double')">2x</button>
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('cf-custom-amount','max')">Max</button>
+            <div class="bet-panel">
+                <div class="bet-panel-tabs">
+                    <button class="bet-panel-tab active" type="button">Manual</button>
+                    <button class="bet-panel-tab" type="button" disabled>Auto</button>
                 </div>
-                <span style="font-weight:700;font-size:0.88rem;color:var(--text-main);margin-left:0.5rem;">Side:</span>
-                <div class="cf-sides" id="cf-sides"></div>
-                <button class="btn-open" style="padding:0 1.2rem;height:36px;font-size:0.88rem;margin-left:auto;" id="cf-create-btn" onclick="createCoinflip()">Create</button>
+                <div class="bet-panel-label">Bet amount</div>
+                <div class="bet-panel-input-row">
+                    <input type="number" id="cf-custom-amount" class="bet-panel-input" min="0.01" step="any" value="5" oninput="cfState.amount=parseFloat(this.value)||0">
+                    <div class="bet-panel-shortcuts">
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('cf-custom-amount','half')">1/2</button>
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('cf-custom-amount','double')">2x</button>
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('cf-custom-amount','max')">Max</button>
+                    </div>
+                </div>
+                <div class="bet-panel-label">Side</div>
+                <div class="bet-panel-sides" id="cf-sides"></div>
+                <button class="bet-panel-action primary" id="cf-create-btn" onclick="createCoinflip()">Create Coinflip</button>
             </div>
             <div id="cf-active-area"></div>
             <h3 class="section-title" style="font-size:1rem;margin-top:1.5rem;">Open Coinflips</h3>
@@ -1572,15 +1625,21 @@
                     <div class="bj-deck-card" id="bj-deck-top"></div>
                     <div class="bj-deck-count" id="bj-deck-count"></div>
                 </div>
-                <div class="bj-bet-row" id="bj-bet-row">
-                    <span style="font-weight:700;font-size:0.9rem;color:var(--text-main);">Bet: $</span>
-                    <input type="number" id="bj-bet-amount" class="login-input" style="width:130px;margin:0;padding:0.45rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5">
-                    <div class="bet-shortcuts">
-                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','half')">1/2</button>
-                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','double')">2x</button>
-                        <button type="button" class="bet-shortcut" onclick="betShortcut('bj-bet-amount','max')">Max</button>
+                <div class="bet-panel" id="bj-bet-row">
+                    <div class="bet-panel-tabs">
+                        <button class="bet-panel-tab active" type="button">Manual</button>
+                        <button class="bet-panel-tab" type="button" disabled>Auto</button>
                     </div>
-                    <button class="btn-open" id="bj-deal-btn" style="padding:0 1.6rem;height:42px;" onclick="bjDeal()">Deal</button>
+                    <div class="bet-panel-label">Bet amount</div>
+                    <div class="bet-panel-input-row">
+                        <input type="number" id="bj-bet-amount" class="bet-panel-input" min="0.01" step="any" value="5">
+                        <div class="bet-panel-shortcuts">
+                            <button type="button" class="bet-panel-shortcut" onclick="betShortcut('bj-bet-amount','half')">1/2</button>
+                            <button type="button" class="bet-panel-shortcut" onclick="betShortcut('bj-bet-amount','double')">2x</button>
+                            <button type="button" class="bet-panel-shortcut" onclick="betShortcut('bj-bet-amount','max')">Max</button>
+                        </div>
+                    </div>
+                    <button class="bet-panel-action primary" id="bj-deal-btn" onclick="bjDeal()">Deal</button>
                 </div>
 
                 <div class="bj-area" id="bj-area" style="display:none;">
@@ -1604,28 +1663,44 @@
             </div>
         </div>
 
-        <div id="page-aviator" class="page">
-            <h2 class="section-title">Aviator</h2>
+        <div id="page-crash" class="page">
+            <h2 class="section-title">Crash</h2>
             <p class="section-subtitle">Cash out before the plane crashes! The longer you wait, the higher the multiplier.</p>
-
-            <div class="bj-bet-row" id="av-bet-row" style="max-width:460px;">
-                <span style="font-weight:700;font-size:0.9rem;color:var(--text-main);">Bet: $</span>
-                <input type="number" id="av-bet-amount" class="login-input" style="width:130px;margin:0;padding:0.45rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5">
-                <div class="bet-shortcuts">
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','half')">1/2</button>
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','double')">2x</button>
-                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','max')">Max</button>
-                </div>
-                <button class="btn-open" id="av-bet-btn" style="padding:0 1.6rem;height:42px;" onclick="avPlaceBet()">Place Bet</button>
-            </div>
 
             <div class="av-graph" id="av-graph">
                 <canvas id="av-canvas"></canvas>
                 <div class="av-multiplier" id="av-multiplier">1.00x</div>
                 <div class="av-result" id="av-result"></div>
-                <button class="av-cashout-btn" id="av-cashout-btn" style="display:none;" onclick="avCashOut()">
-                    Cash Out <span id="av-cashout-amt"></span>
-                </button>
+            </div>
+
+            <div class="bet-panel" id="cr-panel">
+                <div class="bet-panel-tabs">
+                    <button class="bet-panel-tab active" type="button">Manual</button>
+                    <button class="bet-panel-tab" type="button" disabled>Auto</button>
+                </div>
+                <div class="bet-panel-label">Bet amount</div>
+                <div class="bet-panel-input-row">
+                    <input type="number" id="av-bet-amount" class="bet-panel-input" min="0.01" step="any" value="5">
+                    <div class="bet-panel-shortcuts">
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('av-bet-amount','half')">1/2</button>
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('av-bet-amount','double')">2x</button>
+                        <button type="button" class="bet-panel-shortcut" onclick="betShortcut('av-bet-amount','max')">Max</button>
+                    </div>
+                </div>
+                <div class="bet-panel-label">Auto cashout</div>
+                <div class="bet-panel-input-row">
+                    <input type="number" id="cr-auto-cashout" class="bet-panel-input" min="0" step="0.01" placeholder="0.00" value="0" oninput="crSyncAutoPresets()">
+                </div>
+                <div class="bet-panel-presets">
+                    <button type="button" class="bet-panel-preset" id="cr-auto-disable" onclick="crSetAutoCashout(0)">Disable</button>
+                    <button type="button" class="bet-panel-preset" onclick="crSetAutoCashout(2)">2.00x</button>
+                    <button type="button" class="bet-panel-preset" onclick="crSetAutoCashout(10)">10.00x</button>
+                </div>
+                <button class="bet-panel-action primary" id="av-bet-btn" onclick="crBetAction()">Place Bet</button>
+                <div class="bet-panel-info" id="cr-info" style="display:none;">
+                    <span class="bp-info-label">Multiplier <span class="bp-info-val" id="cr-info-mult">1.00x</span></span>
+                    <span class="bp-info-label">Reward <span class="bp-info-val" id="cr-info-reward">$0.00</span></span>
+                </div>
             </div>
         </div>
 
@@ -1754,6 +1829,82 @@
             ng.gain.setValueAtTime(0.18,t);
             ng.gain.exponentialRampToValueAtTime(0.001,t+0.4);
             src.start(t);
+        }
+
+        function playCardDeal(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            // Short percussive snap: high-frequency burst with fast decay
+            var osc=audioCtx.createOscillator();
+            var gain=audioCtx.createGain();
+            osc.connect(gain);gain.connect(audioCtx.destination);
+            osc.type='square';
+            osc.frequency.setValueAtTime(1400,t);
+            osc.frequency.exponentialRampToValueAtTime(350,t+0.04);
+            gain.gain.setValueAtTime(0.14,t);
+            gain.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+            osc.start(t);osc.stop(t+0.06);
+            // tiny noise click for the "snap"
+            var buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.03,audioCtx.sampleRate);
+            var d=buf.getChannelData(0);
+            for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+            var src=audioCtx.createBufferSource();src.buffer=buf;
+            var ng=audioCtx.createGain();
+            src.connect(ng);ng.connect(audioCtx.destination);
+            ng.gain.setValueAtTime(0.1,t);
+            ng.gain.exponentialRampToValueAtTime(0.001,t+0.03);
+            src.start(t);
+        }
+
+        function playCardFlip(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            // Softer swish: filtered noise burst
+            var buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.18,audioCtx.sampleRate);
+            var d=buf.getChannelData(0);
+            for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+            var src=audioCtx.createBufferSource();src.buffer=buf;
+            var filt=audioCtx.createBiquadFilter();
+            filt.type='bandpass';
+            filt.frequency.setValueAtTime(1200,t);
+            filt.frequency.exponentialRampToValueAtTime(3500,t+0.15);
+            filt.Q.value=0.8;
+            var ng=audioCtx.createGain();
+            src.connect(filt);filt.connect(ng);ng.connect(audioCtx.destination);
+            ng.gain.setValueAtTime(0.0001,t);
+            ng.gain.linearRampToValueAtTime(0.12,t+0.04);
+            ng.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+            src.start(t);
+        }
+
+        function playCashRegister(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            // Quick ascending ding (two bright bell-like tones)
+            var notes=[880,1318.51];
+            notes.forEach(function(freq,i){
+                var osc=audioCtx.createOscillator();
+                var gain=audioCtx.createGain();
+                osc.connect(gain);gain.connect(audioCtx.destination);
+                osc.type='sine';
+                var start=t+i*0.07;
+                osc.frequency.setValueAtTime(freq,start);
+                gain.gain.setValueAtTime(0,start);
+                gain.gain.linearRampToValueAtTime(0.22,start+0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001,start+0.4);
+                osc.start(start);osc.stop(start+0.4);
+            });
+            // sparkle on top
+            var s=audioCtx.createOscillator();
+            var sg=audioCtx.createGain();
+            s.connect(sg);sg.connect(audioCtx.destination);
+            s.type='triangle';
+            s.frequency.setValueAtTime(2637,t+0.08);
+            s.frequency.exponentialRampToValueAtTime(3520,t+0.3);
+            sg.gain.setValueAtTime(0,t+0.08);
+            sg.gain.linearRampToValueAtTime(0.08,t+0.12);
+            sg.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+            s.start(t+0.08);s.stop(t+0.4);
         }
 
         function playGoldSpin(){
@@ -2508,7 +2659,7 @@
             else if (pageId === 'coinflip') { renderCoinflipPage(); startBattlePoll(); }
             else if (pageId === 'coinflip-room') { renderCfRoom(); startBattlePoll(); }
             else if (pageId === 'blackjack') { stopBattlePoll(); cancelBattleAnim(); renderBlackjackPage(); }
-            else if (pageId === 'aviator') { stopBattlePoll(); cancelBattleAnim(); renderAviatorPage(); }
+            else if (pageId === 'crash') { stopBattlePoll(); cancelBattleAnim(); renderCrashPage(); }
             else { stopBattlePoll(); cancelBattleAnim(); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             var el = document.getElementById('page-' + pageId);
@@ -3452,9 +3603,9 @@
             if(amtInput)amtInput.value=cfState.amount;
             document.getElementById('cf-sides').innerHTML=['heads','tails'].map(function(s){
                 var label=s.charAt(0).toUpperCase()+s.slice(1);
-                return'<div class="cf-side-btn '+(cfState.side===s?'active':'')+'" onclick="cfState.side=\''+s+'\';renderCoinflipPage()">'+
+                return'<div class="bet-panel-side '+(cfState.side===s?'active':'')+'" onclick="cfState.side=\''+s+'\';renderCoinflipPage()">'+
                     '<div class="cf-preview-coin '+( s==='heads'?'cf-coin-heads':'cf-coin-tails')+'">'+( s==='heads'?'H':'T')+'</div>'+
-                    '<div class="cf-side-label">'+label+'</div></div>';
+                    '<div class="bps-label">'+label+'</div></div>';
             }).join('');
             renderCoinflipList();
         }
@@ -3817,7 +3968,7 @@
             });
 
             bjUpdateDeckCount();
-            playTick();
+            playCardDeal();
 
             setTimeout(function(){
                 fly.remove();
@@ -3837,6 +3988,7 @@
         function bjRevealHidden(card,callback){
             var el=document.getElementById('bj-hidden-card');
             if(!el){if(callback)callback();return;}
+            playCardFlip();
             el.style.transition='transform 0.3s ease';
             el.style.transform='scaleX(0)';
             setTimeout(function(){
@@ -4027,31 +4179,59 @@
             }
         }
 
-        // ============ AVIATOR ============
-        var avState = { active:false, bet:0, crashed:false, cashedOut:false, multiplier:1.00, crashPoint:0 };
-        var avRAF = null;
-        var avStartTime = 0;
-        var avNextMilestone = 0;
-        var avMilestones = [2,3,5,10,20,50,100];
+        // ============ CRASH ============
+        var crState = { active:false, bet:0, crashed:false, cashedOut:false, multiplier:1.00, crashPoint:0, autoCashout:0 };
+        var crRAF = null;
+        var crStartTime = 0;
+        var crNextMilestone = 0;
+        var crMilestones = [2,3,5,10,20,50,100];
 
-        function avGenerateCrashPoint(){
+        function crGenerateCrashPoint(){
             // House edge ~4%: crash point follows exponential distribution
             var r = Math.random();
             var e = 0.96 / (1 - r);
             return Math.max(1.01, Math.floor(e * 100) / 100);
         }
 
-        function avLockBets(locked){
-            var inp=document.getElementById('av-bet-amount');if(inp)inp.disabled=locked;
-            var btn=document.getElementById('av-bet-btn');if(btn)btn.disabled=locked;
-            document.querySelectorAll('#av-bet-row .bet-shortcut').forEach(function(b){b.disabled=locked;});
+        function crSetAutoCashout(val){
+            crState.autoCashout=val;
+            var inp=document.getElementById('cr-auto-cashout');
+            if(inp)inp.value=val?val.toFixed(2):'0';
+            crSyncAutoPresets();
+        }
+        function crSyncAutoPresets(){
+            var inp=document.getElementById('cr-auto-cashout');
+            var val=inp?(parseFloat(inp.value)||0):0;
+            crState.autoCashout=val;
+            var dis=document.getElementById('cr-auto-disable');
+            document.querySelectorAll('#cr-panel .bet-panel-preset').forEach(function(b){b.classList.remove('active');});
+            if(!val||val<=1){if(dis)dis.classList.add('active');}
+            else{
+                document.querySelectorAll('#cr-panel .bet-panel-preset').forEach(function(b){
+                    var t=b.innerText.replace('x','');
+                    if(parseFloat(t)===val)b.classList.add('active');
+                });
+            }
         }
 
-        function avSetMultiplierText(val,cls){
+        function crLockBets(locked){
+            var inp=document.getElementById('av-bet-amount');if(inp)inp.disabled=locked;
+            var auto=document.getElementById('cr-auto-cashout');if(auto)auto.disabled=locked;
+            document.querySelectorAll('#cr-panel .bet-panel-shortcut, #cr-panel .bet-panel-preset').forEach(function(b){b.disabled=locked;});
+        }
+
+        function crSetMultiplierText(val,cls){
             var el=document.getElementById('av-multiplier');
             if(!el)return;
             el.className='av-multiplier'+(cls?' '+cls:'');
             el.innerHTML=val.toFixed(2)+'x';
+        }
+
+        // Reset the action button back to "Place Bet" for the next round
+        function crResetButton(){
+            var btn=document.getElementById('av-bet-btn');
+            if(btn){btn.className='bet-panel-action primary';btn.disabled=false;btn.innerText='Place Bet';}
+            var info=document.getElementById('cr-info');if(info)info.style.display='none';
         }
 
         function avResize(){
@@ -4148,128 +4328,157 @@
             }
         }
 
-        function avAnimate(){
-            if(!avState.active){avRAF=null;return;}
-            var elapsed=performance.now()-avStartTime; // ms
-            // multiplier: starts ~1x growth/sec, accelerates over time
-            var m=1+elapsed*0.001*(1+elapsed*0.0003);
-            avState.multiplier=m;
+        function crAnimate(){
+            if(!crState.active){crRAF=null;return;}
+            var elapsed=performance.now()-crStartTime; // ms
+            // Slow start, then exponential acceleration: e^(0.08t)
+            var seconds=elapsed/1000;
+            var m=Math.pow(Math.E, seconds*0.08);
+            crState.multiplier=m;
 
-            if(m>=avState.crashPoint){
-                avCrash();
+            // auto cashout
+            if(crState.autoCashout>1 && m>=crState.autoCashout){
+                crCashOut(true);
+                return;
+            }
+
+            if(m>=crState.crashPoint){
+                crCrash();
                 return;
             }
 
             // milestone ticks
-            while(avNextMilestone<avMilestones.length && m>=avMilestones[avNextMilestone]){
+            while(crNextMilestone<crMilestones.length && m>=crMilestones[crNextMilestone]){
                 playTick();
-                avNextMilestone++;
+                crNextMilestone++;
             }
 
             // progress along X: approach 1 asymptotically with time so it never runs off
             var progress=Math.min(0.97,1-Math.exp(-elapsed/9000));
             avDraw(progress,m,false);
-            avSetMultiplierText(m,'');
+            crSetMultiplierText(m,'');
+            crUpdateButton(m);
 
-            var amt=document.getElementById('av-cashout-amt');
-            if(amt)amt.innerText='$'+fmt(avState.bet*m);
-
-            avRAF=requestAnimationFrame(avAnimate);
+            crRAF=requestAnimationFrame(crAnimate);
         }
 
-        async function avPlaceBet(){
-            if(avState.active)return;
+        // Update the action button + info box during flight
+        function crUpdateButton(m){
+            var btn=document.getElementById('av-bet-btn');
+            if(btn){
+                btn.className='bet-panel-action cashout';
+                btn.disabled=false;
+                btn.innerHTML='Cash Out '+m.toFixed(2)+'x ($'+fmt(crState.bet*m)+')';
+            }
+            var info=document.getElementById('cr-info');
+            if(info){
+                info.style.display='flex';
+                var mu=document.getElementById('cr-info-mult');if(mu)mu.innerText=m.toFixed(2)+'x';
+                var rw=document.getElementById('cr-info-reward');if(rw)rw.innerText='$'+fmt(crState.bet*m);
+            }
+        }
+
+        // Single button handler: places bet when idle, cashes out when active
+        function crBetAction(){
+            if(crState.active){crCashOut(false);return;}
+            crPlaceBet();
+        }
+
+        async function crPlaceBet(){
+            if(crState.active)return;
             var inp=document.getElementById('av-bet-amount');
             var bet=parseFloat(inp?inp.value:'0')||0;
             bet=Math.round(bet*100)/100;
             if(bet<=0){showToast('Enter a valid bet amount','error');return;}
             if(balance<bet){showToast('Not enough balance','error');return;}
+            var auto=document.getElementById('cr-auto-cashout');
+            var autoVal=auto?(parseFloat(auto.value)||0):0;
             // Deduct bet server-side first.
             var pay=await apiCall('/api/balance',{amount:-bet});
             if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
             balance=pay.balance;updateUI();showToast('Spent -$'+fmt(bet),'error');
 
-            avState={active:true,bet:bet,crashed:false,cashedOut:false,multiplier:1.00,crashPoint:avGenerateCrashPoint()};
-            avNextMilestone=0;
-            avStartTime=performance.now();
-            avLockBets(true);
+            crState={active:true,bet:bet,crashed:false,cashedOut:false,multiplier:1.00,crashPoint:crGenerateCrashPoint(),autoCashout:autoVal};
+            crNextMilestone=0;
+            crStartTime=performance.now();
+            crLockBets(true);
 
-            avSetResult('','');
-            avSetMultiplierText(1.00,'');
+            crSetResult('','');
+            crSetMultiplierText(1.00,'');
             avResize();
             avDraw(0,1.00,false);
+            crUpdateButton(1.00);
 
-            var cob=document.getElementById('av-cashout-btn');
-            if(cob){cob.style.display='';document.getElementById('av-cashout-amt').innerText='$'+fmt(bet);}
-
-            if(avRAF)cancelAnimationFrame(avRAF);
-            avRAF=requestAnimationFrame(avAnimate);
+            if(crRAF)cancelAnimationFrame(crRAF);
+            crRAF=requestAnimationFrame(crAnimate);
         }
 
-        function avSetResult(msg,cls){
+        function crSetResult(msg,cls){
             var el=document.getElementById('av-result');
             if(!el)return;
             el.className='av-result'+(cls?' '+cls:'');
             el.innerText=msg;
         }
 
-        async function avCashOut(){
-            if(!avState.active||avState.cashedOut||avState.crashed)return;
-            avState.cashedOut=true;
-            avState.active=false;
-            if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
-            var m=avState.multiplier;
-            var payout=Math.round(avState.bet*m*100)/100;
-            avSetMultiplierText(m,'cashed');
-            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-avStartTime)/9000)),m,false);
+        async function crCashOut(isAuto){
+            if(!crState.active||crState.cashedOut||crState.crashed)return;
+            crState.cashedOut=true;
+            crState.active=false;
+            if(crRAF){cancelAnimationFrame(crRAF);crRAF=null;}
+            var m=crState.multiplier;
+            var payout=Math.round(crState.bet*m*100)/100;
+            crSetMultiplierText(m,'cashed');
+            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-crStartTime)/9000)),m,false);
 
-            var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
-            avSetResult('CASHED OUT @ '+m.toFixed(2)+'x  +$'+fmt(payout-avState.bet),'win');
-            playWin();
-            showToast('Cashed out @ '+m.toFixed(2)+'x  +$'+fmt(payout-avState.bet),'success');
+            var btn=document.getElementById('av-bet-btn');
+            if(btn){btn.className='bet-panel-action cashout';btn.disabled=true;btn.innerText='Cashed Out at '+m.toFixed(2)+' x';}
+            crSetResult((isAuto?'AUTO ':'')+'CASHED OUT @ '+m.toFixed(2)+'x  +$'+fmt(payout-crState.bet),'win');
+            playCashRegister();
+            showToast('Cashed out @ '+m.toFixed(2)+'x  +$'+fmt(payout-crState.bet),'success');
             if(m>=5)fireConfetti(m>=10?110:80);
 
             var r=await apiCall('/api/balance',{amount:payout});
             if(r&&r.ok){balance=r.balance;updateUI();}
-            avLockBets(false);
-            var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
+            crLockBets(false);
+            setTimeout(function(){if(!crState.active)crResetButton();},2200);
         }
 
-        function avCrash(){
-            avState.crashed=true;
-            avState.active=false;
-            if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
-            var cp=avState.crashPoint;
-            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-avStartTime)/9000)),cp,true);
+        function crCrash(){
+            crState.crashed=true;
+            crState.active=false;
+            if(crRAF){cancelAnimationFrame(crRAF);crRAF=null;}
+            var cp=crState.crashPoint;
+            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-crStartTime)/9000)),cp,true);
             var el=document.getElementById('av-multiplier');
             if(el){el.className='av-multiplier crashed';el.innerHTML=cp.toFixed(2)+'x<div class="av-crashed-label">CRASHED</div>';}
-            var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
-            avSetResult('CRASHED — lost $'+fmt(avState.bet),'lose');
+            var btn=document.getElementById('av-bet-btn');
+            if(btn){btn.className='bet-panel-action crashed';btn.disabled=true;btn.innerText='Crashed at '+cp.toFixed(2)+' x';}
+            crSetResult('CRASHED — lost $'+fmt(crState.bet),'lose');
             playCrash();
-            avLockBets(false);
-            var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
+            crLockBets(false);
+            setTimeout(function(){if(!crState.active)crResetButton();},2200);
         }
 
-        function renderAviatorPage(){
+        function renderCrashPage(){
+            crSyncAutoPresets();
             // stop any leftover loop, reset to idle if not mid-flight
-            if(!avState.active){
-                if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
-                var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
-                avLockBets(false);
-                var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
-                if(!avState.crashed&&!avState.cashedOut){avSetMultiplierText(1.00,'');avSetResult('','');}
+            if(!crState.active){
+                if(crRAF){cancelAnimationFrame(crRAF);crRAF=null;}
+                crLockBets(false);
+                crResetButton();
+                if(!crState.crashed&&!crState.cashedOut){crSetMultiplierText(1.00,'');crSetResult('','');}
             }
             // size canvas once page is visible
             requestAnimationFrame(function(){
                 avResize();
-                if(!avState.active)avDraw(0,avState.crashed?avState.crashPoint:1.00,avState.crashed);
+                if(!crState.active)avDraw(0,crState.crashed?crState.crashPoint:1.00,crState.crashed);
             });
         }
 
         window.addEventListener('resize',function(){
-            if(document.getElementById('page-aviator')&&document.getElementById('page-aviator').classList.contains('active')){
+            if(document.getElementById('page-crash')&&document.getElementById('page-crash').classList.contains('active')){
                 avResize();
-                if(!avState.active)avDraw(0,avState.crashed?avState.crashPoint:1.00,avState.crashed);
+                if(!crState.active)avDraw(0,crState.crashed?crState.crashPoint:1.00,crState.crashed);
             }
         });
 
@@ -4420,7 +4629,7 @@
                             if (socket) socket.emit('coinflip:watch', {coinflipId: roomId});
                             showPage('coinflip-room');
                         } else {
-                            var validPages = ['home','browser','battles','create-battle','coinflip','blackjack','inventory','opening','admin','settings','aviator'];
+                            var validPages = ['home','browser','battles','create-battle','coinflip','blackjack','inventory','opening','admin','settings','crash'];
                             if (validPages.indexOf(page) !== -1) showPage(page);
                         }
                     }
