@@ -1053,6 +1053,24 @@
         .bj-result.push{color:#fde68a;}
         .bj-actions{display:flex;gap:0.75rem;justify-content:center;position:relative;z-index:5;}
         .bj-actions .btn-open,.bj-actions .btn-demo{min-width:110px;}
+
+        /* --- AVIATOR --- */
+        .av-graph{position:relative;width:100%;max-width:760px;height:350px;margin:0 auto;background:#0c1220;border:1px solid rgba(255,255,255,0.07);border-radius:16px;overflow:hidden;box-shadow:inset 0 0 60px rgba(0,0,0,0.5);}
+        html.light-theme .av-graph{box-shadow:var(--card-shadow),inset 0 0 60px rgba(0,0,0,0.5);}
+        .av-graph canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+        .av-multiplier{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(2.8rem,9vw,5rem);font-weight:900;letter-spacing:-2px;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,0.6);pointer-events:none;z-index:4;transition:color .15s,transform .15s;font-variant-numeric:tabular-nums;}
+        .av-multiplier.cashed{color:#4ade80;text-shadow:0 0 30px rgba(74,222,128,0.7);}
+        .av-multiplier.crashed{color:#ef4444;text-shadow:0 0 30px rgba(239,68,68,0.7);animation:avShake .4s;}
+        @keyframes avShake{0%,100%{transform:translate(-50%,-50%);}20%{transform:translate(-53%,-50%);}40%{transform:translate(-47%,-50%);}60%{transform:translate(-52%,-50%);}80%{transform:translate(-48%,-50%);}}
+        .av-crashed-label{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:900;letter-spacing:2px;color:#ef4444;margin-top:0.4rem;text-shadow:0 0 24px rgba(239,68,68,0.6);}
+        .av-result{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:1.15rem;font-weight:900;letter-spacing:0.5px;z-index:4;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,0.6);min-height:1.4em;}
+        .av-result.win{color:#4ade80;}
+        .av-result.lose{color:#ef4444;}
+        .av-cashout-btn{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:6;background:#22c55e;color:#fff;border:none;border-radius:12px;font-family:inherit;font-weight:900;font-size:1.15rem;letter-spacing:0.5px;padding:0.85rem 2.4rem;cursor:pointer;box-shadow:0 8px 28px rgba(34,197,94,0.45);animation:avPulse 1s ease-in-out infinite;transition:background .15s;}
+        .av-cashout-btn:hover{background:#16a34a;}
+        .av-cashout-btn span{font-weight:800;opacity:0.95;}
+        @keyframes avPulse{0%,100%{transform:translateX(-50%) scale(1);box-shadow:0 8px 28px rgba(34,197,94,0.45);}50%{transform:translateX(-50%) scale(1.05);box-shadow:0 10px 36px rgba(34,197,94,0.65);}}
+        @media(max-width:480px){.av-graph{height:300px;}}
         @media(max-width:480px){
             .bj-card{width:60px;height:86px;}
             .bj-card-center{font-size:1.7rem;}
@@ -1213,7 +1231,7 @@
 
             <div class="landing-modes">
                 <div class="landing-modes-head">
-                    <h2>One platform. Four ways to play.</h2>
+                    <h2>One platform. Five ways to play.</h2>
                     <p>Everything you need for the ultimate unboxing experience.</p>
                 </div>
                 <div class="landing-mode-grid">
@@ -1236,6 +1254,11 @@
                         <div class="landing-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.2"/><path d="M12 7c-1.6 1.8-3 3.3-3 5a3 3 0 0 0 6 0c0-1.7-1.4-3.2-3-5z"/><line x1="12" y1="14.5" x2="12" y2="18"/><line x1="10.3" y1="18" x2="13.7" y2="18"/></svg></div>
                         <h3>Blackjack</h3>
                         <p>Hit, stand, and double down against the dealer to 21.</p>
+                    </div>
+                    <div class="landing-mode-card">
+                        <div class="landing-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg></div>
+                        <h3>Aviator</h3>
+                        <p>Cash out before the plane crashes. The longer you fly, the more you win.</p>
                     </div>
                 </div>
             </div>
@@ -1315,6 +1338,10 @@
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.2"/><path d="M12 7c-1.6 1.8-3 3.3-3 5a3 3 0 0 0 6 0c0-1.7-1.4-3.2-3-5z"/></svg>
                     Blackjack
                 </a>
+                <a onclick="showPage('aviator')" id="nav-aviator">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg>
+                    Aviator
+                </a>
                 <a onclick="showPage('inventory')" id="nav-inventory">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12l1 7H5z"/><path d="M5 9h14v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M9.5 13h5"/></svg>
                     Inventory
@@ -1363,6 +1390,7 @@
             <a onclick="showPage('battles');toggleSidebar();" id="sb-battles"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/></svg>Battles</a>
             <a onclick="showPage('coinflip');toggleSidebar();" id="sb-coinflip"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="6.2" ry="6.2"/><path d="M12 8v8M9.5 9.5h3.2a1.5 1.5 0 0 1 0 3H9.8h3a1.5 1.5 0 0 1 0 3H9.5"/></svg>Coinflip</a>
             <a onclick="showPage('blackjack');toggleSidebar();" id="sb-blackjack"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.2"/><path d="M12 7c-1.6 1.8-3 3.3-3 5a3 3 0 0 0 6 0c0-1.7-1.4-3.2-3-5z"/></svg>Blackjack</a>
+            <a onclick="showPage('aviator');toggleSidebar();" id="sb-aviator"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12.5l-9 2-3.5 5.5-1.5-.5 1.5-5.5-4-1.5-2.5 2-1.2-.4 1.6-3.6-1.6-3.6 1.2-.4 2.5 2 4-1.5L9 1.5l1.5-.5L12.5 9z"/></svg>Aviator</a>
             <a onclick="showPage('inventory');toggleSidebar();" id="sb-inventory"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12l1 7H5z"/><path d="M5 9h14v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M9.5 13h5"/></svg>Inventory</a>
             <a onclick="showPage('settings');toggleSidebar();" id="sb-settings"><svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
             <a onclick="showPage('admin');toggleSidebar();" id="sb-admin" class="admin-nav-link" style="display:none">Admin</a>
@@ -1576,6 +1604,31 @@
             </div>
         </div>
 
+        <div id="page-aviator" class="page">
+            <h2 class="section-title">Aviator</h2>
+            <p class="section-subtitle">Cash out before the plane crashes! The longer you wait, the higher the multiplier.</p>
+
+            <div class="bj-bet-row" id="av-bet-row" style="max-width:460px;">
+                <span style="font-weight:700;font-size:0.9rem;color:var(--text-main);">Bet: $</span>
+                <input type="number" id="av-bet-amount" class="login-input" style="width:130px;margin:0;padding:0.45rem 0.7rem;font-size:0.95rem;font-weight:700;" min="0.01" step="any" value="5">
+                <div class="bet-shortcuts">
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','half')">1/2</button>
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','double')">2x</button>
+                    <button type="button" class="bet-shortcut" onclick="betShortcut('av-bet-amount','max')">Max</button>
+                </div>
+                <button class="btn-open" id="av-bet-btn" style="padding:0 1.6rem;height:42px;" onclick="avPlaceBet()">Place Bet</button>
+            </div>
+
+            <div class="av-graph" id="av-graph">
+                <canvas id="av-canvas"></canvas>
+                <div class="av-multiplier" id="av-multiplier">1.00x</div>
+                <div class="av-result" id="av-result"></div>
+                <button class="av-cashout-btn" id="av-cashout-btn" style="display:none;" onclick="avCashOut()">
+                    Cash Out <span id="av-cashout-amt"></span>
+                </button>
+            </div>
+        </div>
+
         <div id="page-settings" class="page">
             <h2 class="section-title">Settings</h2>
             <p class="section-subtitle">Manage your appearance, account, and profile.</p>
@@ -1675,6 +1728,32 @@
                 osc.start(t+i*0.12);
                 osc.stop(t+i*0.12+0.5);
             });
+        }
+
+        function playCrash(){
+            if(audioCtx.state==='suspended')audioCtx.resume();
+            var t=audioCtx.currentTime;
+            // Low rumble: descending sawtooth + noise burst
+            var osc=audioCtx.createOscillator();
+            var gain=audioCtx.createGain();
+            osc.connect(gain);gain.connect(audioCtx.destination);
+            osc.type='sawtooth';
+            osc.frequency.setValueAtTime(180,t);
+            osc.frequency.exponentialRampToValueAtTime(40,t+0.5);
+            gain.gain.setValueAtTime(0.0001,t);
+            gain.gain.linearRampToValueAtTime(0.3,t+0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001,t+0.6);
+            osc.start(t);osc.stop(t+0.6);
+            // noise burst
+            var buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.4,audioCtx.sampleRate);
+            var d=buf.getChannelData(0);
+            for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+            var src=audioCtx.createBufferSource();src.buffer=buf;
+            var ng=audioCtx.createGain();
+            src.connect(ng);ng.connect(audioCtx.destination);
+            ng.gain.setValueAtTime(0.18,t);
+            ng.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+            src.start(t);
         }
 
         function playGoldSpin(){
@@ -2429,7 +2508,7 @@
             else if (pageId === 'coinflip') { renderCoinflipPage(); startBattlePoll(); }
             else if (pageId === 'coinflip-room') { renderCfRoom(); startBattlePoll(); }
             else if (pageId === 'blackjack') { stopBattlePoll(); cancelBattleAnim(); renderBlackjackPage(); }
-            else if (pageId === 'settings') { stopBattlePoll(); cancelBattleAnim(); renderSettingsPage(); }
+            else if (pageId === 'aviator') { stopBattlePoll(); cancelBattleAnim(); renderAviatorPage(); }
             else { stopBattlePoll(); cancelBattleAnim(); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             var el = document.getElementById('page-' + pageId);
@@ -3947,6 +4026,252 @@
                 var db=document.getElementById('bj-deal-btn');if(db){db.innerText='Deal';db.disabled=false;}
             }
         }
+
+        // ============ AVIATOR ============
+        var avState = { active:false, bet:0, crashed:false, cashedOut:false, multiplier:1.00, crashPoint:0 };
+        var avRAF = null;
+        var avStartTime = 0;
+        var avNextMilestone = 0;
+        var avMilestones = [2,3,5,10,20,50,100];
+
+        function avGenerateCrashPoint(){
+            // House edge ~4%: crash point follows exponential distribution
+            var r = Math.random();
+            var e = 0.96 / (1 - r);
+            return Math.max(1.01, Math.floor(e * 100) / 100);
+        }
+
+        function avLockBets(locked){
+            var inp=document.getElementById('av-bet-amount');if(inp)inp.disabled=locked;
+            var btn=document.getElementById('av-bet-btn');if(btn)btn.disabled=locked;
+            document.querySelectorAll('#av-bet-row .bet-shortcut').forEach(function(b){b.disabled=locked;});
+        }
+
+        function avSetMultiplierText(val,cls){
+            var el=document.getElementById('av-multiplier');
+            if(!el)return;
+            el.className='av-multiplier'+(cls?' '+cls:'');
+            el.innerHTML=val.toFixed(2)+'x';
+        }
+
+        function avResize(){
+            var canvas=document.getElementById('av-canvas');
+            if(!canvas)return;
+            var dpr=window.devicePixelRatio||1;
+            var rect=canvas.getBoundingClientRect();
+            if(rect.width===0)return;
+            canvas.width=Math.round(rect.width*dpr);
+            canvas.height=Math.round(rect.height*dpr);
+            var ctx=canvas.getContext('2d');
+            ctx.setTransform(dpr,0,0,dpr,0,0);
+        }
+
+        function avDraw(progress, multiplier, crashed){
+            var canvas=document.getElementById('av-canvas');
+            if(!canvas)return;
+            var ctx=canvas.getContext('2d');
+            var dpr=window.devicePixelRatio||1;
+            var W=canvas.width/dpr, H=canvas.height/dpr;
+            ctx.clearRect(0,0,W,H);
+
+            // grid
+            ctx.strokeStyle='rgba(255,255,255,0.05)';
+            ctx.lineWidth=1;
+            var stepY=H/8;
+            for(var gy=0;gy<=8;gy++){ctx.beginPath();ctx.moveTo(0,gy*stepY);ctx.lineTo(W,gy*stepY);ctx.stroke();}
+            var stepX=W/10;
+            for(var gx=0;gx<=10;gx++){ctx.beginPath();ctx.moveTo(gx*stepX,0);ctx.lineTo(gx*stepX,H);ctx.stroke();}
+
+            var padL=10, padB=14;
+            var x0=padL, y0=H-padB;
+            // curve end-point: progress 0..1 across width, multiplier maps to height
+            var endX=x0+(W-padL*2)*progress;
+            // height grows with multiplier, eased so it stays on-screen
+            var heightFrac=1-1/Math.max(1,multiplier*0.55+0.45);
+            var endY=y0-(H-padB-10)*heightFrac;
+
+            // build the curve (quadratic-ish rising path)
+            var lineColor=crashed?'#ef4444':'#22c55e';
+            ctx.beginPath();
+            ctx.moveTo(x0,y0);
+            var steps=40;
+            for(var i=1;i<=steps;i++){
+                var t=i/steps;
+                var px=x0+(endX-x0)*t;
+                // ease curve upward (accelerating)
+                var fy=Math.pow(t,1.7);
+                var py=y0-(y0-endY)*fy;
+                ctx.lineTo(px,py);
+            }
+            // glow trail fill under curve
+            var grad=ctx.createLinearGradient(0,y0,0,endY);
+            grad.addColorStop(0,crashed?'rgba(239,68,68,0.02)':'rgba(34,197,94,0.02)');
+            grad.addColorStop(1,crashed?'rgba(239,68,68,0.28)':'rgba(34,197,94,0.28)');
+            ctx.lineTo(endX,y0);
+            ctx.closePath();
+            ctx.fillStyle=grad;
+            ctx.fill();
+
+            // redraw the line on top
+            ctx.beginPath();
+            ctx.moveTo(x0,y0);
+            for(var j=1;j<=steps;j++){
+                var t2=j/steps;
+                var px2=x0+(endX-x0)*t2;
+                var fy2=Math.pow(t2,1.7);
+                var py2=y0-(y0-endY)*fy2;
+                ctx.lineTo(px2,py2);
+            }
+            ctx.strokeStyle=lineColor;
+            ctx.lineWidth=3.5;
+            ctx.lineJoin='round';
+            ctx.lineCap='round';
+            ctx.shadowColor=lineColor;
+            ctx.shadowBlur=crashed?6:14;
+            ctx.stroke();
+            ctx.shadowBlur=0;
+
+            // plane at the tip
+            if(!crashed){
+                ctx.save();
+                ctx.translate(endX,endY);
+                ctx.rotate(-0.35);
+                ctx.fillStyle='#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(13,0);
+                ctx.lineTo(-9,-6);
+                ctx.lineTo(-4,0);
+                ctx.lineTo(-9,6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function avAnimate(){
+            if(!avState.active){avRAF=null;return;}
+            var elapsed=performance.now()-avStartTime; // ms
+            // multiplier: starts ~1x growth/sec, accelerates over time
+            var m=1+elapsed*0.001*(1+elapsed*0.0003);
+            avState.multiplier=m;
+
+            if(m>=avState.crashPoint){
+                avCrash();
+                return;
+            }
+
+            // milestone ticks
+            while(avNextMilestone<avMilestones.length && m>=avMilestones[avNextMilestone]){
+                playTick();
+                avNextMilestone++;
+            }
+
+            // progress along X: approach 1 asymptotically with time so it never runs off
+            var progress=Math.min(0.97,1-Math.exp(-elapsed/9000));
+            avDraw(progress,m,false);
+            avSetMultiplierText(m,'');
+
+            var amt=document.getElementById('av-cashout-amt');
+            if(amt)amt.innerText='$'+fmt(avState.bet*m);
+
+            avRAF=requestAnimationFrame(avAnimate);
+        }
+
+        async function avPlaceBet(){
+            if(avState.active)return;
+            var inp=document.getElementById('av-bet-amount');
+            var bet=parseFloat(inp?inp.value:'0')||0;
+            bet=Math.round(bet*100)/100;
+            if(bet<=0){showToast('Enter a valid bet amount','error');return;}
+            if(balance<bet){showToast('Not enough balance','error');return;}
+            // Deduct bet server-side first.
+            var pay=await apiCall('/api/balance',{amount:-bet});
+            if(!pay||!pay.ok)return showToast((pay&&pay.msg)||'Not enough balance','error');
+            balance=pay.balance;updateUI();showToast('Spent -$'+fmt(bet),'error');
+
+            avState={active:true,bet:bet,crashed:false,cashedOut:false,multiplier:1.00,crashPoint:avGenerateCrashPoint()};
+            avNextMilestone=0;
+            avStartTime=performance.now();
+            avLockBets(true);
+
+            avSetResult('','');
+            avSetMultiplierText(1.00,'');
+            avResize();
+            avDraw(0,1.00,false);
+
+            var cob=document.getElementById('av-cashout-btn');
+            if(cob){cob.style.display='';document.getElementById('av-cashout-amt').innerText='$'+fmt(bet);}
+
+            if(avRAF)cancelAnimationFrame(avRAF);
+            avRAF=requestAnimationFrame(avAnimate);
+        }
+
+        function avSetResult(msg,cls){
+            var el=document.getElementById('av-result');
+            if(!el)return;
+            el.className='av-result'+(cls?' '+cls:'');
+            el.innerText=msg;
+        }
+
+        async function avCashOut(){
+            if(!avState.active||avState.cashedOut||avState.crashed)return;
+            avState.cashedOut=true;
+            avState.active=false;
+            if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
+            var m=avState.multiplier;
+            var payout=Math.round(avState.bet*m*100)/100;
+            avSetMultiplierText(m,'cashed');
+            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-avStartTime)/9000)),m,false);
+
+            var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
+            avSetResult('CASHED OUT @ '+m.toFixed(2)+'x  +$'+fmt(payout-avState.bet),'win');
+            playWin();
+            showToast('Cashed out @ '+m.toFixed(2)+'x  +$'+fmt(payout-avState.bet),'success');
+            if(m>=5)fireConfetti(m>=10?110:80);
+
+            var r=await apiCall('/api/balance',{amount:payout});
+            if(r&&r.ok){balance=r.balance;updateUI();}
+            avLockBets(false);
+            var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
+        }
+
+        function avCrash(){
+            avState.crashed=true;
+            avState.active=false;
+            if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
+            var cp=avState.crashPoint;
+            avDraw(Math.min(0.97,1-Math.exp(-(performance.now()-avStartTime)/9000)),cp,true);
+            var el=document.getElementById('av-multiplier');
+            if(el){el.className='av-multiplier crashed';el.innerHTML=cp.toFixed(2)+'x<div class="av-crashed-label">CRASHED</div>';}
+            var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
+            avSetResult('CRASHED — lost $'+fmt(avState.bet),'lose');
+            playCrash();
+            avLockBets(false);
+            var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
+        }
+
+        function renderAviatorPage(){
+            // stop any leftover loop, reset to idle if not mid-flight
+            if(!avState.active){
+                if(avRAF){cancelAnimationFrame(avRAF);avRAF=null;}
+                var cob=document.getElementById('av-cashout-btn');if(cob)cob.style.display='none';
+                avLockBets(false);
+                var btn=document.getElementById('av-bet-btn');if(btn)btn.innerText='Place Bet';
+                if(!avState.crashed&&!avState.cashedOut){avSetMultiplierText(1.00,'');avSetResult('','');}
+            }
+            // size canvas once page is visible
+            requestAnimationFrame(function(){
+                avResize();
+                if(!avState.active)avDraw(0,avState.crashed?avState.crashPoint:1.00,avState.crashed);
+            });
+        }
+
+        window.addEventListener('resize',function(){
+            if(document.getElementById('page-aviator')&&document.getElementById('page-aviator').classList.contains('active')){
+                avResize();
+                if(!avState.active)avDraw(0,avState.crashed?avState.crashPoint:1.00,avState.crashed);
+            }
+        });
 
         // --- Polling stubs ---
         function startBattlePoll(){if(socket)socket.emit('lobby:refresh');}
