@@ -97,6 +97,29 @@
         .wallet-btn:hover { background: #2563eb; }
         .profile-btn { width: 34px; height: 34px; border-radius: 50%; background: #2a2d33; display:flex; align-items:center; justify-content:center; }
 
+        /* --- HAMBURGER + SIDEBAR (mobile only) --- */
+        .hamburger{display:none;background:none;border:none;cursor:pointer;padding:0.4rem;border-radius:6px;transition:.2s;}
+        .hamburger:hover{background:rgba(255,255,255,0.08);}
+        .hamburger span{display:block;width:22px;height:2.5px;background:#fff;border-radius:2px;margin:4px 0;transition:all .3s ease;}
+        .hamburger.open span:nth-child(1){transform:rotate(45deg) translate(4px,5px);}
+        .hamburger.open span:nth-child(2){opacity:0;}
+        .hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(4px,-5px);}
+
+        .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:1100;}
+        .sidebar-overlay.open{display:block;}
+
+        .sidebar{position:fixed;top:0;right:-280px;width:280px;height:100vh;background:var(--bg-nav);border-left:1px solid var(--border-light);z-index:1200;transition:right .3s ease;display:flex;flex-direction:column;overflow-y:auto;}
+        .sidebar.open{right:0;}
+        .sidebar-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid var(--border-light);}
+        .sidebar-close{background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:0.25rem;line-height:1;}
+        .sidebar-links{display:flex;flex-direction:column;padding:0.75rem 0;}
+        .sidebar-links a{padding:0.85rem 1.5rem;color:var(--text-muted);font-weight:700;font-size:1rem;cursor:pointer;transition:.2s;border-left:3px solid transparent;}
+        .sidebar-links a:hover,.sidebar-links a.active{color:var(--text-main);background:rgba(255,255,255,0.03);border-left-color:var(--gold-spin);}
+        .sidebar-links a.admin-nav-link{color:#f59e0b;}
+        .sidebar-bottom{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border-light);display:flex;flex-direction:column;gap:0.6rem;}
+        .sidebar-bottom .cart-btn{width:100%;justify-content:center;}
+        .sidebar-bottom .logout-btn{width:100%;text-align:center;}
+
         /* --- LAYOUT --- */
         main { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; position: relative; z-index: 10; }
         .page { display: none; }
@@ -667,20 +690,18 @@
         @media (max-width: 640px) {
             :root { --reel-item-width: 130px; }
 
-            nav { padding: 0.6rem 0.75rem; flex-wrap: wrap; gap: 0.4rem; }
-            .nav-left { gap: 0.6rem; width: 100%; min-width: 0; justify-content: space-between; }
-            .nav-links { gap: 0.5rem; font-size: 0.75rem; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
-            .nav-links a { flex-shrink: 0; }
+            nav { padding: 0.6rem 0.75rem; flex-wrap: nowrap; gap: 0.5rem; }
+            .nav-left { gap: 0.6rem; min-width: 0; flex: 0 0 auto; }
+            .nav-links { display: none !important; }
 
-            .nav-right { gap: 0.4rem; width: 100%; justify-content: flex-end; flex-wrap: nowrap; overflow: hidden; }
-            .user-info { font-size: 0.78rem; }
-            .user-info #user-display { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
-            .wallet-btn { padding: 0.35rem 0.55rem; font-size: 0.75rem; }
-            .cart-btn { padding: 0.3rem 0.5rem; font-size: 0.72rem; }
-            .cart-badge { width: 16px; height: 16px; font-size: 0.65rem; }
-            .logout-btn { padding: 0.3rem 0.5rem; font-size: 0.72rem; }
-            .admin-badge { font-size: 0.58rem; padding: 0.08rem 0.3rem; }
-            .nav-avatar { width: 26px; height: 26px; font-size: 0.7rem; }
+            .nav-right { gap: 0.5rem; flex: 1; justify-content: flex-end; }
+            .nav-right .cart-btn { display: none; }
+            .nav-right .logout-btn { display: none; }
+            .nav-right .user-info #user-display { display: none; }
+            .nav-right .admin-badge { display: none; }
+            .wallet-btn { padding: 0.4rem 0.65rem; font-size: 0.82rem; }
+            .nav-avatar { width: 28px; height: 28px; font-size: 0.75rem; }
+            .hamburger { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
             main { padding: 1.5rem 0.75rem; }
 
@@ -726,13 +747,7 @@
             nav { padding: 0.5rem 0.5rem; }
             .logo { font-size: 1rem; gap: 0.3rem; }
             .logo svg { width: 16px; height: 16px; }
-            .nav-links { gap: 0.4rem; font-size: 0.7rem; }
-
-            .wallet-btn { padding: 0.3rem 0.45rem; font-size: 0.7rem; }
-            .cart-btn { padding: 0.25rem 0.4rem; font-size: 0.68rem; }
-            .cart-badge { width: 14px; height: 14px; font-size: 0.6rem; }
-            .logout-btn { padding: 0.25rem 0.4rem; font-size: 0.68rem; }
-            .nav-avatar { width: 22px; height: 22px; font-size: 0.6rem; }
+            .wallet-btn { padding: 0.35rem 0.5rem; font-size: 0.75rem; }
 
             main { padding: 1.25rem 0.5rem; }
             .browse-grid { gap: 0.5rem; }
@@ -877,8 +892,34 @@
                 $ <span id="bal-display">0.00</span>
             </button>
             <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
         </div>
     </nav>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo" onclick="showPage('browser');toggleSidebar();">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.2 22.02 11.75 22.02 11.39 21.82L3.46 17.38C3.14 17.21 2.93 16.88 2.93 16.5V7.5C2.93 7.12 3.14 6.79 3.46 6.62L11.39 2.18C11.75 1.98 12.2 1.98 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z" fill="#fff"/></svg>
+                RoUnbox
+            </div>
+            <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+        </div>
+        <div class="sidebar-links" id="sidebar-links">
+            <a onclick="showPage('browser');toggleSidebar();" id="sb-browser">Packs</a>
+            <a onclick="showPage('battles');toggleSidebar();" id="sb-battles">Battles</a>
+            <a onclick="showPage('coinflip');toggleSidebar();" id="sb-coinflip">Coinflip</a>
+            <a onclick="showPage('blackjack');toggleSidebar();" id="sb-blackjack">Blackjack</a>
+            <a onclick="showPage('inventory');toggleSidebar();" id="sb-inventory">Inventory</a>
+            <a onclick="showPage('admin');toggleSidebar();" id="sb-admin" class="admin-nav-link" style="display:none">Admin</a>
+        </div>
+        <div class="sidebar-bottom">
+            <button class="cart-btn" onclick="showPage('inventory');toggleSidebar();">
+                Cart <div class="cart-badge" id="sb-inv-count">0</div>
+            </button>
+            <button class="logout-btn" onclick="handleLogout();toggleSidebar();">Logout</button>
+        </div>
+    </div>
 
     <main style="display:none">
         <div id="page-browser" class="page active">
@@ -1560,11 +1601,32 @@
         function updateUI() {
             document.getElementById('bal-display').innerText = fmt(balance);
             document.getElementById('inv-count').innerText = inventory.length;
+            var sbc=document.getElementById('sb-inv-count');if(sbc)sbc.innerText=inventory.length;
             renderInventory();
+        }
+
+        function toggleSidebar(){
+            var sb=document.getElementById('sidebar');
+            var ov=document.getElementById('sidebar-overlay');
+            var btn=document.getElementById('hamburger-btn');
+            if(!sb)return;
+            var open=sb.classList.toggle('open');
+            if(ov)ov.classList.toggle('open',open);
+            if(btn)btn.classList.toggle('open',open);
+        }
+
+        function syncSidebar(){
+            var sbc=document.getElementById('sb-inv-count');
+            var ic=document.getElementById('inv-count');
+            if(sbc&&ic)sbc.innerText=ic.innerText;
+            var sbAdmin=document.getElementById('sb-admin');
+            var navAdmin=document.getElementById('nav-admin');
+            if(sbAdmin&&navAdmin)sbAdmin.style.display=navAdmin.style.display;
         }
 
         function showPage(pageId) {
             if (isSpinning) return;
+            syncSidebar();
             if (pageId === 'admin') {
                 if (!currentUser || !isAdminUser) return;
                 renderAdminPanel();
